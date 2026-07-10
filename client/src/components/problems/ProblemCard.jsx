@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import ConfidenceBadge, { ConfidenceToggle } from './ConfidenceBadge'
 import { daysAgo, formatDate } from '@/utils/dateHelpers'
 import { Timestamp } from 'firebase/firestore'
+import { cn } from '@/lib/utils'
 
 function isDue(nextReviewDate) {
   if (!nextReviewDate) return false
