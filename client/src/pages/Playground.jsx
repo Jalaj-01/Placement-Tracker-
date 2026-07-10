@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Terminal as TerminalIcon, Play, Save, Trash2, Plus, Loader2, FileCode, CheckCircle2 } from 'lucide-react'
+import { Terminal as TerminalIcon, Play, Save, Trash2, Plus, Loader2, FileCode, CheckCircle2, Download } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { usePlayground } from '@/hooks/usePlayground'
 import { Button } from '@/components/ui/button'
@@ -86,6 +86,16 @@ export default function Playground() {
     } catch (err) {
       setOutput('Failed to delete file: ' + err.message)
     }
+  }
+
+  const handleDownload = () => {
+    const element = document.createElement('a')
+    const file = new Blob([code], { type: 'text/plain' })
+    element.href = URL.createObjectURL(file)
+    element.download = fileName || 'solution.py'
+    document.body.appendChild(element)
+    element.click()
+    document.body.removeChild(element)
   }
 
   const handleRun = async () => {
@@ -217,10 +227,32 @@ export default function Playground() {
               />
             </CardContent>
 
-            <div className="p-3 bg-surface flex justify-end">
-              <Button onClick={handleRun} disabled={loadingRunner || running} className="flex items-center gap-2">
-                {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Run Code
+            <div className="p-3 bg-surface flex justify-between items-center border-t border-border-subtle shrink-0">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleDownload}
+                className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
+              >
+                <Download className="h-4 w-4 text-text-muted" /> Download .py
               </Button>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
+                >
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-4 w-4 text-text-muted" />}
+                  Save Script
+                </Button>
+                
+                <Button size="sm" onClick={handleRun} disabled={loadingRunner || running} className="flex items-center gap-2">
+                  {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Run Code
+                </Button>
+              </div>
             </div>
           </Card>
         </div>
