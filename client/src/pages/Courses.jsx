@@ -12,6 +12,7 @@ export default function Courses() {
   const { courses, loading, addCourse, deleteCourse, updateNotes } = useCourses(user?.uid)
 
   const [activeCourse, setActiveCourse] = useState(null)
+  const [listCollapsed, setListCollapsed] = useState(false)
   
   // Add course states
   const [showAdd, setShowAdd] = useState(false)
@@ -159,7 +160,8 @@ export default function Courses() {
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
           {/* Left Column: Course Selector Drawer List */}
-          <div className="lg:col-span-1 space-y-3">
+          {!listCollapsed && (
+            <div className="lg:col-span-1 space-y-3 animate-fade-in">
             <span className="text-micro font-semibold text-text-secondary uppercase tracking-wider block">Your Saved Courses</span>
             <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
               {courses.map((course) => {
@@ -192,10 +194,23 @@ export default function Courses() {
               })}
             </div>
           </div>
+          )}
 
           {/* Right Column: Video Player + Notes Workspace */}
           {activeCourse && (
-            <div className="lg:col-span-3 space-y-6">
+            <div className={`space-y-6 ${listCollapsed ? 'lg:col-span-4' : 'lg:col-span-3'}`}>
+              {/* Collapse/Expand Toggle Ribbon */}
+              <div className="flex items-center">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setListCollapsed(!listCollapsed)}
+                  className="h-8 text-xs flex items-center gap-1.5 bg-elevated border border-border hover:bg-hover text-text-primary"
+                >
+                  <PlaySquare className="h-4 w-4 text-text-muted" />
+                  {listCollapsed ? 'Show Course List' : 'Hide Course List'}
+                </Button>
+              </div>
               {/* Iframe 16:9 Video Canvas */}
               <div className="w-full aspect-video rounded-xl border border-border-subtle bg-black overflow-hidden shadow-lg relative">
                 <iframe
