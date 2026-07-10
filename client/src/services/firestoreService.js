@@ -338,4 +338,40 @@ export async function deleteLibraryDoc(uid, docId) {
   await deleteDoc(doc(db, 'users', uid, 'library', docId))
 }
 
+// ─── Courses ───────────────────────────────────────────────
+export function subscribeCourses(uid, callback) {
+  const q = query(userPath(uid, 'courses'), orderBy('createdAt', 'desc'))
+  return onSnapshot(q, (snap) => {
+    const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    callback(data)
+  })
+}
+
+export async function addCourseDoc(uid, name, url, embedId, isPlaylist) {
+  const ref = collection(db, 'users', uid, 'courses')
+  const newDoc = await addDoc(ref, {
+    name,
+    url,
+    embedId,
+    isPlaylist,
+    notes: '',
+    createdAt: serverTimestamp(),
+  })
+  await recordActivity(uid)
+  return newDoc.id
+}
+
+export async function deleteCourseDoc(uid, courseId) {
+  await deleteDoc(doc(db, 'users', uid, 'courses', courseId))
+}
+
+export async function updateCourseNotesDoc(uid, courseId, notes) {
+  await updateDoc(doc(db, 'users', uid, 'courses', courseId), {
+    notes,
+    updatedAt: serverTimestamp(),
+  })
+  await recordActivity(uid)
+}
+
+
 

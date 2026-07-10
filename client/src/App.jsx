@@ -12,6 +12,8 @@ import Applications from '@/pages/Applications'
 import AICoach from '@/pages/AICoach'
 import Playground from '@/pages/Playground'
 import Library from '@/pages/Library'
+import Courses from '@/pages/Courses'
+
 
 import { useAuth } from '@/hooks/useAuth'
 import { useEffect } from 'react'
@@ -118,6 +120,15 @@ function AppContent() {
               <PageWrapper>
                 <TopBar title="Resource Library" />
                 <Library />
+              </PageWrapper>
+            }
+          />
+          <Route
+            path="/courses"
+            element={
+              <PageWrapper>
+                <TopBar title="Course Vault" />
+                <Courses />
               </PageWrapper>
             }
           />
