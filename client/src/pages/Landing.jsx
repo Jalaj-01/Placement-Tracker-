@@ -3,6 +3,8 @@ import { LayoutDashboard, Code2, BookOpen, Sparkles, Youtube, FolderOpen, Timer,
 import { useAuth } from '@/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
+
 
 export default function Landing() {
   const { user, signInWithGoogle, loading } = useAuth()
