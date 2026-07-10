@@ -23,6 +23,15 @@ export default function Library() {
   // Dialog state
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null)
 
+  const readFileAsBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader()
+      reader.onload = () => resolve(reader.result)
+      reader.onerror = (error) => reject(error)
+      reader.readAsDataURL(file)
+    })
+  }
+
   const uploadFilesList = async (files) => {
     setUploading(true)
     setError('')
@@ -30,32 +39,42 @@ export default function Library() {
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
-        const path = `users/${user?.uid || 'anonymous'}/library/${Date.now()}_${file.name}`
-        const sRef = storageRef(storage, path)
         
-        const uploadTask = uploadBytesResumable(sRef, file)
-        
-        await new Promise((resolve, reject) => {
-          uploadTask.on(
-            'state_changed',
-            (snapshot) => {
-              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-              setUploadProgress(Math.round(progress))
-            },
-            (err) => {
-              reject(err)
-            },
-            () => {
-              resolve()
-            }
-          )
-        })
+        // Under 1MB: Store as Base64 in Firestore directly (zero setup, works offline/instantly!)
+        if (file.size <= 1024 * 1024) {
+          setUploadProgress(30)
+          const base64Url = await readFileAsBase64(file)
+          setUploadProgress(70)
+          await addDoc(file.name, base64Url, file.type, file.size)
+          setUploadProgress(100)
+        } else {
+          // Fallback to Firebase Storage bucket if enabled
+          const path = `users/${user?.uid || 'anonymous'}/library/${Date.now()}_${file.name}`
+          const sRef = storageRef(storage, path)
+          const uploadTask = uploadBytesResumable(sRef, file)
+          
+          await new Promise((resolve, reject) => {
+            uploadTask.on(
+              'state_changed',
+              (snapshot) => {
+                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+                setUploadProgress(Math.round(progress))
+              },
+              (err) => {
+                reject(err)
+              },
+              () => {
+                resolve()
+              }
+            )
+          })
 
-        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
-        await addDoc(file.name, downloadUrl, file.type, file.size)
+          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
+          await addDoc(file.name, downloadUrl, file.type, file.size)
+        }
       }
     } catch (err) {
-      setError('Upload failed: ' + err.message)
+      setError('Upload failed: ' + err.message + ' (For files > 1MB, verify Firebase Storage is activated in console)')
     } finally {
       setUploading(false)
       setUploadProgress(0)

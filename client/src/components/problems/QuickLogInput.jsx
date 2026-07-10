@@ -62,19 +62,33 @@ export default function QuickLogInput({ onSave, user }) {
     setFileUploading(true)
     setError('')
     try {
-      const path = `users/${user?.uid || 'anonymous'}/problems/attachments/${Date.now()}_${file.name}`
-      const sRef = storageRef(storage, path)
-      const snapshot = await uploadBytes(sRef, file)
-      const downloadUrl = await getDownloadURL(snapshot.ref)
+      if (file.size <= 1024 * 1024) {
+        const reader = new FileReader()
+        const base64Url = await new Promise((resolve, reject) => {
+          reader.onload = () => resolve(reader.result)
+          reader.onerror = (err) => reject(err)
+          reader.readAsDataURL(file)
+        })
+        setAttachments((prev) => [
+          ...prev,
+          { name: file.name, url: base64Url, type: file.type },
+        ])
+      } else {
+        const path = `users/${user?.uid || 'anonymous'}/problems/attachments/${Date.now()}_${file.name}`
+        const sRef = storageRef(storage, path)
+        const snapshot = await uploadBytes(sRef, file)
+        const downloadUrl = await getDownloadURL(snapshot.ref)
 
-      setAttachments((prev) => [
-        ...prev,
-        { name: file.name, url: downloadUrl, type: file.type },
-      ])
+        setAttachments((prev) => [
+          ...prev,
+          { name: file.name, url: downloadUrl, type: file.type },
+        ])
+      }
     } catch (err) {
-      setError('File upload failed: ' + err.message)
+      setError('File upload failed: ' + err.message + ' (For files > 1MB, verify Firebase Storage is activated in console)')
     } finally {
       setFileUploading(false)
+      e.target.value = ''
     }
   }
 
