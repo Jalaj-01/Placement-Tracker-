@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink, Trash2, Paperclip } from 'lucide-react'
+import { ExternalLink, Trash2, Paperclip, Play, Save, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -30,6 +30,60 @@ export default function ProblemCard({ problem, onUpdate, onDelete }) {
   const lastReviewed = daysAgo(problem.lastReviewedDate)
 
   const favicon = getFaviconUrl(problem.url)
+
+  // Editor states
+  const [showEditor, setShowEditor] = useState(false)
+  const [code, setCode] = useState(problem.code || "# Write your Python solution here\nprint('Executing solution...')")
+  const [output, setOutput] = useState('')
+  const [running, setRunning] = useState(false)
+  const [savingCode, setSavingCode] = useState(false)
+
+  const runCode = async () => {
+    setRunning(true)
+    setOutput('Running in Wasm sandbox...\n')
+    try {
+      let py = window.pyodideInstance
+      if (!py) {
+        if (!window.loadPyodide) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script')
+            script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js'
+            script.async = true
+            script.onload = resolve
+            script.onerror = reject
+            document.body.appendChild(script)
+          })
+        }
+        py = await window.loadPyodide({
+          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
+        })
+        window.pyodideInstance = py
+      }
+
+      const outputBuffer = []
+      py.setStdout({
+        batched: (str) => {
+          outputBuffer.push(str)
+          setOutput(outputBuffer.join('\n'))
+        },
+      })
+      py.setStderr({
+        batched: (str) => {
+          outputBuffer.push('[Error] ' + str)
+          setOutput(outputBuffer.join('\n'))
+        },
+      })
+
+      await py.runPythonAsync(code)
+      if (outputBuffer.length === 0) {
+        setOutput('Code executed successfully with no output.')
+      }
+    } catch (err) {
+      setOutput((prev) => prev + '\nExecution Error:\n' + err.message)
+    } finally {
+      setRunning(false)
+    }
+  }
 
   return (
     <motion.div
@@ -98,10 +152,81 @@ export default function ProblemCard({ problem, onUpdate, onDelete }) {
               ))}
             </div>
           )}
-          <ConfidenceToggle
-            value={problem.confidenceStatus}
-            onChange={(s) => onUpdate(problem.id, { confidenceStatus: s })}
-          />
+          
+          <div className="flex justify-between items-center mt-3 pt-3 border-t border-border-subtle flex-wrap gap-2">
+            <ConfidenceToggle
+              value={problem.confidenceStatus}
+              onChange={(s) => onUpdate(problem.id, { confidenceStatus: s })}
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEditor(!showEditor)}
+              className="text-xs bg-elevated border border-border hover:bg-hover text-text-primary h-8"
+            >
+              {showEditor ? 'Hide Editor' : 'Code Solution'}
+            </Button>
+          </div>
+
+          {showEditor && (
+            <div className="mt-4 space-y-3 border-t border-border-subtle pt-4 animate-fade-in">
+              <div className="flex items-center justify-between">
+                <span className="text-micro font-semibold text-text-secondary uppercase">Python compiler</span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={async () => {
+                      setSavingCode(true)
+                      try {
+                        await onUpdate(problem.id, { code })
+                      } finally {
+                        setSavingCode(false)
+                      }
+                    }}
+                    disabled={savingCode}
+                    className="text-xs py-1 h-7 flex items-center justify-center gap-1 bg-elevated border border-border hover:bg-hover text-text-primary"
+                  >
+                    {savingCode ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 text-text-muted" />}
+                    Save Code
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={runCode}
+                    disabled={running}
+                    className="text-xs py-1 h-7 flex items-center justify-center gap-1"
+                  >
+                    {running ? <Loader2 className="h-3 w-3 animate-spin" /> : <Play className="h-3 w-3" />}
+                    Run Code
+                  </Button>
+                </div>
+              </div>
+              <textarea
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                className="w-full h-36 bg-base text-text-primary text-xs font-mono p-3 outline-none resize-y rounded-md border border-border-subtle focus:border-border-hover leading-relaxed"
+                placeholder="# Write your Python solution code here..."
+                style={{ tabSize: 4 }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Tab') {
+                    e.preventDefault()
+                    const start = e.target.selectionStart
+                    const end = e.target.selectionEnd
+                    const val = e.target.value
+                    setCode(val.substring(0, start) + '    ' + val.substring(end))
+                    setTimeout(() => {
+                      e.target.selectionStart = e.target.selectionEnd = start + 4
+                    }, 0)
+                  }
+                }}
+              />
+              {output && (
+                <div className="bg-base p-3 rounded-md border border-border-subtle max-h-32 overflow-y-auto">
+                  <pre className="text-[10px] font-mono text-semantic-green whitespace-pre-wrap">{output}</pre>
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
     </motion.div>
