@@ -21,9 +21,10 @@ export default function ConfidenceBadge({ status, size = 'sm' }) {
 
 export function ConfidenceToggle({ value, onChange, disabled }) {
   return (
-    <div className="flex gap-2">
+    <div className="flex gap-1 bg-surface p-1 rounded-lg border border-border-subtle shrink-0">
       {['Red', 'Yellow', 'Green'].map((s) => {
         const c = config[s]
+        const isSelected = value === s
         return (
           <button
             key={s}
@@ -31,8 +32,12 @@ export function ConfidenceToggle({ value, onChange, disabled }) {
             disabled={disabled}
             onClick={() => onChange(s)}
             className={cn(
-              'flex-1 py-3 rounded-lg border text-secondary font-medium transition-all active:scale-[0.97]',
-              value === s ? `${c.bg} ${c.text} border-current` : 'border-border bg-surface text-text-secondary hover:border-border-hover'
+              'text-micro px-3 py-1 rounded-md font-medium transition-all duration-200 active:scale-[0.97] h-7 flex items-center justify-center min-w-[56px]',
+              isSelected
+                ? s === 'Red' ? 'bg-semantic-red text-white shadow-sm font-semibold' :
+                  s === 'Yellow' ? 'bg-semantic-yellow text-white shadow-sm font-semibold' :
+                  'bg-semantic-green text-white shadow-sm font-semibold'
+                : 'text-text-muted hover:text-text-primary hover:bg-hover/50'
             )}
           >
             {s}

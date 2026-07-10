@@ -11,6 +11,7 @@ import StreakBar from '@/components/dashboard/StreakBar'
 import WeeklySnapshot from '@/components/dashboard/WeeklySnapshot'
 import DailyFocusQueue from '@/components/dashboard/DailyFocusQueue'
 import RadarCompetency from '@/components/dashboard/RadarCompetency'
+import AssessmentTimer from '@/components/dashboard/AssessmentTimer'
 
 export default function Dashboard() {
   const { user, profile } = useAuth()
@@ -130,12 +131,18 @@ export default function Dashboard() {
 
       {/* Progress & Competency Coverage Section */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-3">
-          <h2 className="text-section font-semibold text-text-primary">Subject Coverage</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <ProgressRing percentage={dsaPct} label="DSA Prep" strokeColor="stroke-accent" />
-            <ProgressRing percentage={csPct} label="CS Theory" strokeColor="stroke-semantic-purple" />
-            <ProgressRing percentage={aptPct} label="Aptitude" strokeColor="stroke-semantic-green" />
+        <div className="lg:col-span-2 space-y-6">
+          <div className="space-y-3">
+            <h2 className="text-section font-semibold text-text-primary">Subject Coverage</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <ProgressRing percentage={dsaPct} label="DSA Prep" strokeColor="stroke-accent" />
+              <ProgressRing percentage={csPct} label="CS Theory" strokeColor="stroke-semantic-purple" />
+              <ProgressRing percentage={aptPct} label="Aptitude" strokeColor="stroke-semantic-green" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            <h2 className="text-section font-semibold text-text-primary">Timed Assessment Mock</h2>
+            <AssessmentTimer />
           </div>
         </div>
         <div className="space-y-3">
@@ -143,6 +150,7 @@ export default function Dashboard() {
           <RadarCompetency topics={topics} />
         </div>
       </div>
+
 
       {/* Weekly snapshot statistics */}
       <WeeklySnapshot problems={problems} topics={topics} applications={applications} />
