@@ -3,7 +3,7 @@ import { LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles, Terminal } from 
 import { cn } from '@/lib/utils'
 
 const items = [
-  { to: '/', icon: LayoutDashboard, label: 'Home' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Home' },
   { to: '/problems', icon: Code2, label: 'Problems' },
   { to: '/topics', icon: BookOpen, label: 'Topics' },
   { to: '/applications', icon: Briefcase, label: 'Apps' },
@@ -19,7 +19,7 @@ export default function BottomNav() {
           <NavLink
             key={to}
             to={to}
-            end={to === '/'}
+            end={to === '/dashboard'}
             className={({ isActive }) => cn(
               'flex flex-col items-center gap-0.5 px-2 py-1 rounded-lg transition-colors min-w-[56px]',
               isActive ? 'text-accent-light' : 'text-text-muted'

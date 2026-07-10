@@ -13,7 +13,8 @@ import AICoach from '@/pages/AICoach'
 import Playground from '@/pages/Playground'
 import Library from '@/pages/Library'
 import Courses from '@/pages/Courses'
-
+import Landing from '@/pages/Landing'
+import { Loader2 } from 'lucide-react'
 
 import { useAuth } from '@/hooks/useAuth'
 import { useEffect } from 'react'
@@ -24,7 +25,7 @@ import { useApplications } from '@/hooks/useApplications'
 import { requestNotificationPermission, runNotificationScheduler } from '@/utils/notifications'
 
 function AppContent() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, loading: authLoading } = useAuth()
   const setOffline = useAppStore((s) => s.setOffline)
   const { streakData } = useStreak(user?.uid)
   const { applications } = useApplications(user?.uid)
@@ -54,88 +55,111 @@ function AppContent() {
     }
   }, [user, streakData, applications])
 
-  return (
-    <AuthGuard>
-      <div className="min-h-screen bg-base text-text-primary">
-        <Sidebar user={user} onSignOut={signOut} />
-        <BottomNav />
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <PageWrapper>
-                <TopBar title="Dashboard" />
-                <Dashboard />
-              </PageWrapper>
-            }
-          />
-          <Route
-            path="/problems"
-            element={
-              <PageWrapper>
-                <TopBar title="Problem Log" />
-                <Problems />
-              </PageWrapper>
-            }
-          />
-          <Route
-            path="/topics"
-            element={
-              <PageWrapper>
-                <TopBar title="Topics" />
-                <Topics />
-              </PageWrapper>
-            }
-          />
-          <Route
-            path="/applications"
-            element={
-              <PageWrapper>
-                <TopBar title="Applications" />
-                <Applications />
-              </PageWrapper>
-            }
-          />
-          <Route
-            path="/ai-coach"
-            element={
-              <PageWrapper>
-                <TopBar title="AI Coach" />
-                <AICoach />
-              </PageWrapper>
-            }
-          />
-          <Route
-            path="/playground"
-            element={
-              <PageWrapper>
-                <TopBar title="Python Playground" />
-                <Playground />
-              </PageWrapper>
-            }
-          />
-          <Route
-            path="/library"
-            element={
-              <PageWrapper>
-                <TopBar title="Resource Library" />
-                <Library />
-              </PageWrapper>
-            }
-          />
-          <Route
-            path="/courses"
-            element={
-              <PageWrapper>
-                <TopBar title="Course Vault" />
-                <Courses />
-              </PageWrapper>
-            }
-          />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#060609] flex items-center justify-center">
+        <div className="space-y-4 w-64 text-center">
+          <Loader2 className="h-8 w-8 text-accent animate-spin mx-auto" />
+          <p className="text-xs text-text-muted">Loading your command center...</p>
+        </div>
       </div>
-    </AuthGuard>
+    )
+  }
+
+  // Public routing for unauthenticated users
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    )
+  }
+
+  // Private routing for logged-in users
+  return (
+    <div className="min-h-screen bg-base text-text-primary">
+      <Sidebar user={user} onSignOut={signOut} />
+      <BottomNav />
+      <Routes>
+        {/* Redirect root to dashboard when authenticated */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
+        <Route
+          path="/dashboard"
+          element={
+            <PageWrapper>
+              <TopBar title="Dashboard" />
+              <Dashboard />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/problems"
+          element={
+            <PageWrapper>
+              <TopBar title="Problem Log" />
+              <Problems />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/topics"
+          element={
+            <PageWrapper>
+              <TopBar title="Topics" />
+              <Topics />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/applications"
+          element={
+            <PageWrapper>
+              <TopBar title="Applications" />
+              <Applications />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/ai-coach"
+          element={
+            <PageWrapper>
+              <TopBar title="AI Coach" />
+              <AICoach />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/playground"
+          element={
+            <PageWrapper>
+              <TopBar title="Python Playground" />
+              <Playground />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/library"
+          element={
+            <PageWrapper>
+              <TopBar title="Resource Library" />
+              <Library />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/courses"
+          element={
+            <PageWrapper>
+              <TopBar title="Course Vault" />
+              <Courses />
+            </PageWrapper>
+          }
+        />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </div>
   )
 }
 

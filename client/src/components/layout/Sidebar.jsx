@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
 
 const navItems = [
-  { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
+  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
   { to: '/problems', icon: Code2, label: 'Problems' },
   { to: '/topics', icon: BookOpen, label: 'Topics' },
   { to: '/applications', icon: Briefcase, label: 'Applications' },
