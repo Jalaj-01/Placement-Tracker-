@@ -7,7 +7,8 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { storage } from '@/config/firebase'
-import { ref as storageRef, uploadBytes, getDownloadURL } from 'firebase/storage'
+import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
+import { cn } from '@/lib/utils'
 
 export default function Library() {
   const { user } = useAuth()
@@ -15,32 +16,74 @@ export default function Library() {
 
   const [search, setSearch] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [uploadProgress, setUploadProgress] = useState(0)
+  const [isDragging, setIsDragging] = useState(false)
   const [error, setError] = useState('')
   
   // Dialog state
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null)
 
-  const handleFileUpload = async (e) => {
-    const files = e.target.files
-    if (!files || files.length === 0) return
-    
+  const uploadFilesList = async (files) => {
     setUploading(true)
     setError('')
+    setUploadProgress(0)
     try {
       for (let i = 0; i < files.length; i++) {
         const file = files[i]
         const path = `users/${user?.uid || 'anonymous'}/library/${Date.now()}_${file.name}`
         const sRef = storageRef(storage, path)
-        const snapshot = await uploadBytes(sRef, file)
-        const downloadUrl = await getDownloadURL(snapshot.ref)
         
+        const uploadTask = uploadBytesResumable(sRef, file)
+        
+        await new Promise((resolve, reject) => {
+          uploadTask.on(
+            'state_changed',
+            (snapshot) => {
+              const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
+              setUploadProgress(Math.round(progress))
+            },
+            (err) => {
+              reject(err)
+            },
+            () => {
+              resolve()
+            }
+          )
+        })
+
+        const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
         await addDoc(file.name, downloadUrl, file.type, file.size)
       }
     } catch (err) {
       setError('Upload failed: ' + err.message)
     } finally {
       setUploading(false)
+      setUploadProgress(0)
     }
+  }
+
+  const handleFileUpload = async (e) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    await uploadFilesList(files)
+    e.target.value = '' // Clear file value so same file can be selected again
+  }
+
+  const handleDragOver = (e) => {
+    e.preventDefault()
+    setIsDragging(true)
+  }
+
+  const handleDragLeave = () => {
+    setIsDragging(false)
+  }
+
+  const handleDrop = async (e) => {
+    e.preventDefault()
+    setIsDragging(false)
+    const files = e.dataTransfer.files
+    if (!files || files.length === 0) return
+    await uploadFilesList(files)
   }
 
   const formatSize = (bytes) => {
@@ -70,14 +113,22 @@ export default function Library() {
         </div>
         <div>
           <h1 className="text-page font-bold text-text-primary">Resource Library</h1>
-          <p className="text-secondary text-text-secondary">Store and review your preparation sheets, syllabus PDFs, and note screenshots</p>
+          <p className="text-secondary text-text-secondary font-medium">Store and review your preparation sheets, syllabus PDFs, and note screenshots</p>
         </div>
       </div>
 
       {/* Upload Zone */}
-      <Card className="border border-dashed border-border-subtle hover:border-border-hover bg-card transition-all">
+      <Card
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={cn(
+          "border border-dashed border-border-subtle bg-card transition-all cursor-pointer select-none",
+          isDragging ? "border-accent bg-accent/5 scale-[1.01]" : "hover:border-border-hover"
+        )}
+      >
         <CardContent className="p-6">
-          <label className="flex flex-col items-center justify-center gap-2 cursor-pointer py-6">
+          <label className="flex flex-col items-center justify-center gap-2 cursor-pointer py-6 w-full">
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-surface border border-border-subtle">
               {uploading ? (
                 <Loader2 className="h-6 w-6 text-accent-light animate-spin" />
@@ -86,7 +137,15 @@ export default function Library() {
               )}
             </div>
             <div className="text-center">
-              <span className="text-body font-semibold text-accent-light">Click to upload files</span>
+              {uploading ? (
+                <span className="text-body font-semibold text-accent-light">
+                  Uploading: {uploadProgress}%
+                </span>
+              ) : (
+                <span className="text-body font-semibold text-accent-light">
+                  {isDragging ? 'Drop files here!' : 'Click or Drag files to upload'}
+                </span>
+              )}
               <p className="text-micro text-text-muted mt-1">Accepts multiple images or PDF study guides</p>
             </div>
             <input
@@ -109,7 +168,7 @@ export default function Library() {
         <div className="relative max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-muted" />
           <Input
-            placeholder="Search documents by name..."
+            placeholder="Search resources by name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 text-xs"
