@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { storage } from '@/config/firebase'
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { cn } from '@/lib/utils'
+import { openFileInNewTab } from '@/utils/fileHelpers'
 
 export default function Library() {
   const { user } = useAuth()
@@ -236,11 +237,14 @@ export default function Library() {
                     </div>
 
                     <div className="flex gap-1.5 justify-end">
-                      <a href={docItem.url} target="_blank" rel="noopener noreferrer">
-                        <Button variant="ghost" size="icon" className="h-7 w-7 text-text-muted hover:text-text-primary hover:bg-hover">
-                          <ExternalLink className="h-3.5 w-3.5" />
-                        </Button>
-                      </a>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openFileInNewTab(docItem.url, docItem.type)}
+                        className="h-7 w-7 text-text-muted hover:text-text-primary hover:bg-hover"
+                      >
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"

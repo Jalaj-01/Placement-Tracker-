@@ -8,6 +8,8 @@ import ConfidenceBadge, { ConfidenceToggle } from './ConfidenceBadge'
 import { daysAgo, formatDate } from '@/utils/dateHelpers'
 import { Timestamp } from 'firebase/firestore'
 import { cn } from '@/lib/utils'
+import { openFileInNewTab } from '@/utils/fileHelpers'
+
 
 function isDue(nextReviewDate) {
   if (!nextReviewDate) return false
@@ -139,16 +141,15 @@ export default function ProblemCard({ problem, onUpdate, onDelete }) {
           {problem.attachments && problem.attachments.length > 0 && (
             <div className="flex gap-2 flex-wrap mb-3">
               {problem.attachments.map((att, idx) => (
-                <a
+                <button
                   key={idx}
-                  href={att.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  type="button"
+                  onClick={() => openFileInNewTab(att.url, att.type)}
                   className="inline-flex items-center gap-1.5 text-micro bg-hover border border-border-subtle hover:border-border-hover px-2 py-0.5 rounded text-accent-light transition-colors"
                 >
                   <Paperclip className="h-3 w-3" />
                   {att.name}
-                </a>
+                </button>
               ))}
             </div>
           )}
