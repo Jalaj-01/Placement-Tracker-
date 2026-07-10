@@ -160,13 +160,26 @@ export default function QuickLogInput({ onSave, user }) {
             successCount++
           }
         } else {
-          // Direct text question title!
+          // Parse line as comma-separated: Title, Tag, Difficulty
+          const parts = line.split(',').map((p) => p.trim())
+          const title = parts[0]
+          const tag = parts[1] || 'General'
+          let difficulty = parts[2] || 'Medium'
+
+          // Normalize difficulty formatting (e.g., easy -> Easy)
+          const diffNormal = difficulty.charAt(0).toUpperCase() + difficulty.slice(1).toLowerCase()
+          if (['Easy', 'Medium', 'Hard'].includes(diffNormal)) {
+            difficulty = diffNormal
+          } else {
+            difficulty = 'Medium'
+          }
+
           await onSave({
-            title: line,
+            title,
             url: '',
             platform: 'Other',
-            tag: 'General',
-            difficulty: 'Medium',
+            tag,
+            difficulty,
             confidenceStatus: 'Red',
             notes: 'Bulk manual entry',
             problemType,
@@ -258,7 +271,7 @@ export default function QuickLogInput({ onSave, user }) {
           <textarea
             value={bulkUrls}
             onChange={(e) => setBulkUrls(e.target.value)}
-            placeholder="Paste multiple URLs or raw question titles here (one item per line)..."
+            placeholder="Paste items (one per line).&#10;• For links: https://leetcode.com/problems/...&#10;• For manual: Title, Tag, Difficulty (e.g. Two Sum, Arrays, Easy)"
             className="w-full h-32 bg-card border border-border-subtle rounded-md p-3 text-body outline-none focus:border-border-hover resize-none"
             disabled={isOffline || bulkImporting}
           />
