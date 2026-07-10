@@ -312,3 +312,30 @@ export async function deletePlaygroundFile(uid, fileId) {
   await deleteDoc(doc(db, 'users', uid, 'playground', fileId))
 }
 
+// ─── Library ───────────────────────────────────────────────
+export function subscribeLibrary(uid, callback) {
+  const q = query(userPath(uid, 'library'), orderBy('createdAt', 'desc'))
+  return onSnapshot(q, (snap) => {
+    const data = snap.docs.map((doc) => ({ id: doc.id, ...doc.data() }))
+    callback(data)
+  })
+}
+
+export async function addLibraryDoc(uid, name, url, type, size) {
+  const ref = collection(db, 'users', uid, 'library')
+  const newDoc = await addDoc(ref, {
+    name,
+    url,
+    type,
+    size,
+    createdAt: serverTimestamp(),
+  })
+  await recordActivity(uid)
+  return newDoc.id
+}
+
+export async function deleteLibraryDoc(uid, docId) {
+  await deleteDoc(doc(db, 'users', uid, 'library', docId))
+}
+
+

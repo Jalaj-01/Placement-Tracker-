@@ -11,6 +11,8 @@ import Topics from '@/pages/Topics'
 import Applications from '@/pages/Applications'
 import AICoach from '@/pages/AICoach'
 import Playground from '@/pages/Playground'
+import Library from '@/pages/Library'
+
 import { useAuth } from '@/hooks/useAuth'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
@@ -107,6 +109,15 @@ function AppContent() {
               <PageWrapper>
                 <TopBar title="Python Playground" />
                 <Playground />
+              </PageWrapper>
+            }
+          />
+          <Route
+            path="/library"
+            element={
+              <PageWrapper>
+                <TopBar title="Resource Library" />
+                <Library />
               </PageWrapper>
             }
           />
