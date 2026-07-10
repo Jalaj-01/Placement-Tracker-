@@ -275,3 +275,28 @@ export function subscribeProfile(uid, callback) {
     if (snap.exists()) callback(snap.data())
   })
 }
+
+export function subscribePlaygroundFiles(uid, callback) {
+  const q = query(collection(db, 'users', uid, 'playground'), orderBy('updatedAt', 'desc'))
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+  })
+}
+
+export async function savePlaygroundFile(uid, fileId, name, code) {
+  const ref = fileId
+    ? doc(db, 'users', uid, 'playground', fileId)
+    : doc(collection(db, 'users', uid, 'playground'))
+  await setDoc(ref, {
+    name,
+    code,
+    updatedAt: serverTimestamp(),
+  }, { merge: true })
+  await recordActivity(uid)
+  return ref.id
+}
+
+export async function deletePlaygroundFile(uid, fileId) {
+  await deleteDoc(doc(db, 'users', uid, 'playground', fileId))
+}
+

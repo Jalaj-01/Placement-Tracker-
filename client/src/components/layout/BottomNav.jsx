@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles } from 'lucide-react'
+import { LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles, Terminal } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const items = [
@@ -8,6 +8,7 @@ const items = [
   { to: '/topics', icon: BookOpen, label: 'Topics' },
   { to: '/applications', icon: Briefcase, label: 'Apps' },
   { to: '/ai-coach', icon: Sparkles, label: 'AI' },
+  { to: '/playground', icon: Terminal, label: 'Code' },
 ]
 
 export default function BottomNav() {

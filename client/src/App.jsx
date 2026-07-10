@@ -10,13 +10,20 @@ import Problems from '@/pages/Problems'
 import Topics from '@/pages/Topics'
 import Applications from '@/pages/Applications'
 import AICoach from '@/pages/AICoach'
+import Playground from '@/pages/Playground'
 import { useAuth } from '@/hooks/useAuth'
 import { useEffect } from 'react'
 import { useAppStore } from '@/store/useAppStore'
 
+import { useStreak } from '@/hooks/useStreak'
+import { useApplications } from '@/hooks/useApplications'
+import { requestNotificationPermission, runNotificationScheduler } from '@/utils/notifications'
+
 function AppContent() {
   const { user, signOut } = useAuth()
   const setOffline = useAppStore((s) => s.setOffline)
+  const { streakData } = useStreak(user?.uid)
+  const { applications } = useApplications(user?.uid)
 
   useEffect(() => {
     const handleOnline = () => setOffline(false)
@@ -30,6 +37,18 @@ function AppContent() {
       window.removeEventListener('offline', handleOffline)
     }
   }, [setOffline])
+
+  useEffect(() => {
+    if (user) {
+      requestNotificationPermission()
+    }
+  }, [user])
+
+  useEffect(() => {
+    if (user && streakData && applications.length > 0) {
+      runNotificationScheduler(streakData, applications)
+    }
+  }, [user, streakData, applications])
 
   return (
     <AuthGuard>
@@ -79,6 +98,15 @@ function AppContent() {
               <PageWrapper>
                 <TopBar title="AI Coach" />
                 <AICoach />
+              </PageWrapper>
+            }
+          />
+          <Route
+            path="/playground"
+            element={
+              <PageWrapper>
+                <TopBar title="Python Playground" />
+                <Playground />
               </PageWrapper>
             }
           />

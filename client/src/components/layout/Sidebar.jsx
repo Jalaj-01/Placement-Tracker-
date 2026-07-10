@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles,
-  ChevronLeft, ChevronRight, LogOut,
+  ChevronLeft, ChevronRight, LogOut, Terminal,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -13,6 +13,7 @@ const navItems = [
   { to: '/topics', icon: BookOpen, label: 'Topics' },
   { to: '/applications', icon: Briefcase, label: 'Applications' },
   { to: '/ai-coach', icon: Sparkles, label: 'AI Coach' },
+  { to: '/playground', icon: Terminal, label: 'Playground' },
 ]
 
 export default function Sidebar({ user, onSignOut }) {
