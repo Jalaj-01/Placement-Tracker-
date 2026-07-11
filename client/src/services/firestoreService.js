@@ -373,5 +373,13 @@ export async function updateCourseNotesDoc(uid, courseId, notes) {
   await recordActivity(uid)
 }
 
+export async function updateCourseProgressDoc(uid, courseId, progress) {
+  await updateDoc(doc(db, 'users', uid, 'courses', courseId), {
+    progress,
+    updatedAt: serverTimestamp(),
+  })
+  await recordActivity(uid)
+}
+
 
 

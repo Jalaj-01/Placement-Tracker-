@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, HelpCircle, Maximize2, Minimize2, AlertCircle } from 'lucide-react'
+import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCourses } from '@/hooks/useCourses'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 export default function Courses() {
   const { user } = useAuth()
-  const { courses, loading, addCourse, deleteCourse, updateNotes } = useCourses(user?.uid)
+  const { courses, loading, addCourse, deleteCourse, updateNotes, updateProgress } = useCourses(user?.uid)
 
   const [activeCourse, setActiveCourse] = useState(null)
   
@@ -29,26 +29,200 @@ export default function Courses() {
   const [notesSaving, setNotesSaving] = useState(false)
   const [isNotesDirty, setIsNotesDirty] = useState(false)
 
+  // Progress states
+  const [progressPercent, setProgressPercent] = useState(0)
+  const [currentTime, setCurrentTime] = useState(0)
+  const [duration, setDuration] = useState(0)
+  const [activeVideoTitle, setActiveVideoTitle] = useState('')
+  const [activeVideoId, setActiveVideoId] = useState('')
+  const [overrideVideoId, setOverrideVideoId] = useState('')
+
   // Dialog state
   const [deleteConfirmId, setDeleteConfirmId] = useState(null)
 
-  // Set first course active on load if none selected
+  // Load YouTube Player API on mount
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script')
+      tag.src = 'https://www.youtube.com/iframe_api'
+      const firstScriptTag = document.getElementsByTagName('script')[0]
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
+    }
+  }, [])
+
+  // Sync active course on load
   useEffect(() => {
     if (courses.length > 0 && !activeCourse) {
       setActiveCourse(courses[0])
       setLocalNotes(courses[0].notes || '')
+      setOverrideVideoId('')
     }
   }, [courses, activeCourse])
 
-  // Sync notes when switching active course
+  // Sync state values when switching active course
   const handleSelectCourse = (course) => {
     if (isNotesDirty && activeCourse) {
       updateNotes(activeCourse.id, localNotes)
     }
     setActiveCourse(course)
     setLocalNotes(course.notes || '')
+    setOverrideVideoId('')
     setIsNotesDirty(false)
+    
+    // Clear playback states
+    setProgressPercent(course.progress?.percent || 0)
+    setCurrentTime(course.progress?.currentTime || 0)
+    setDuration(course.progress?.duration || 0)
+    setActiveVideoTitle(course.progress?.lastVideoTitle || '')
+    setActiveVideoId(course.progress?.lastVideoId || '')
   }
+
+  // Handle manual tracking override via slider
+  const handleSliderChange = async (e) => {
+    const newPercent = parseInt(e.target.value, 10)
+    setProgressPercent(newPercent)
+    
+    if (activeCourse) {
+      const targetId = activeVideoId || activeCourse.embedId
+      const targetTitle = activeVideoTitle || activeCourse.name
+      const progressMap = activeCourse.progress?.progressMap || {}
+      
+      const newTime = Math.round((newPercent / 100) * (duration || 300))
+      
+      progressMap[targetId] = {
+        percent: newPercent,
+        currentTime: newTime,
+        duration: duration || 300,
+        title: targetTitle,
+        updatedAt: Date.now()
+      }
+
+      await updateProgress(activeCourse.id, {
+        percent: newPercent,
+        currentTime: newTime,
+        duration: duration || 300,
+        lastVideoId: targetId,
+        lastVideoTitle: targetTitle,
+        progressMap
+      })
+    }
+  }
+
+  // Bind YouTube Player API
+  useEffect(() => {
+    let player
+    let intervalId
+
+    if (!activeCourse) return
+
+    const saveCurrentProgress = (ytPlayer) => {
+      if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+        const time = ytPlayer.getCurrentTime()
+        const dur = ytPlayer.getDuration()
+        
+        let videoId = activeCourse.embedId
+        let videoTitle = activeCourse.name
+        
+        if (typeof ytPlayer.getVideoData === 'function') {
+          const data = ytPlayer.getVideoData()
+          if (data && data.video_id) {
+            videoId = data.video_id
+            videoTitle = data.title || activeCourse.name
+          }
+        }
+
+        if (dur > 0) {
+          const percent = Math.round((time / dur) * 100)
+          const progressMap = activeCourse.progress?.progressMap || {}
+          
+          progressMap[videoId] = {
+            percent,
+            currentTime: Math.round(time),
+            duration: Math.round(dur),
+            title: videoTitle,
+            updatedAt: Date.now()
+          }
+
+          updateProgress(activeCourse.id, {
+            percent,
+            currentTime: Math.round(time),
+            duration: Math.round(dur),
+            lastVideoId: videoId,
+            lastVideoTitle: videoTitle,
+            progressMap
+          })
+        }
+      }
+    }
+
+    const startTracking = (ytPlayer) => {
+      intervalId = setInterval(() => {
+        if (ytPlayer && typeof ytPlayer.getCurrentTime === 'function') {
+          const time = ytPlayer.getCurrentTime()
+          const dur = ytPlayer.getDuration()
+          
+          let videoId = activeCourse.embedId
+          let videoTitle = activeCourse.name
+          
+          if (typeof ytPlayer.getVideoData === 'function') {
+            const data = ytPlayer.getVideoData()
+            if (data && data.video_id) {
+              videoId = data.video_id
+              videoTitle = data.title || activeCourse.name
+            }
+          }
+
+          setActiveVideoId(videoId)
+          setActiveVideoTitle(videoTitle)
+
+          if (dur > 0) {
+            const percent = Math.round((time / dur) * 100)
+            setProgressPercent(percent)
+            setCurrentTime(Math.round(time))
+            setDuration(Math.round(dur))
+          }
+        }
+      }, 3000)
+    }
+
+    const initPlayer = () => {
+      try {
+        player = new window.YT.Player('yt-iframe-player', {
+          events: {
+            onStateChange: (event) => {
+              if (event.data === 1) { // PLAYING
+                startTracking(player)
+              } else { // PAUSED or ENDED
+                clearInterval(intervalId)
+                saveCurrentProgress(player)
+              }
+            }
+          }
+        })
+      } catch (e) {
+        console.warn("Could not bind YouTube Player API:", e)
+      }
+    }
+
+    // Try initializing player once iframe is loaded
+    const timer = setTimeout(() => {
+      if (window.YT && window.YT.Player) {
+        initPlayer()
+      } else {
+        window.onYouTubeIframeAPIReady = initPlayer
+      }
+    }, 1200)
+
+    return () => {
+      clearTimeout(timer)
+      clearInterval(intervalId)
+      if (player && typeof player.destroy === 'function') {
+        try {
+          player.destroy()
+        } catch (e) {}
+      }
+    }
+  }, [activeCourse, overrideVideoId])
 
   const parseYoutubeUrl = (url) => {
     let embedId = ''
@@ -118,9 +292,26 @@ export default function Courses() {
 
   const getEmbedUrl = (course) => {
     if (!course) return ''
+    if (overrideVideoId) {
+      return `https://www.youtube.com/embed/${overrideVideoId}?enablejsapi=1`
+    }
     return course.isPlaylist
-      ? `https://www.youtube.com/embed/videoseries?list=${course.embedId}`
-      : `https://www.youtube.com/embed/${course.embedId}`
+      ? `https://www.youtube.com/embed/videoseries?list=${course.embedId}&enablejsapi=1`
+      : `https://www.youtube.com/embed/${course.embedId}?enablejsapi=1`
+  }
+
+  const formatTime = (secs) => {
+    if (isNaN(secs) || secs === 0) return '0m'
+    const m = Math.floor(secs / 60)
+    return `${m}m`
+  }
+
+  const getHistoryList = (course) => {
+    if (!course?.progress?.progressMap) return []
+    return Object.entries(course.progress.progressMap).map(([id, val]) => ({
+      id,
+      ...val
+    })).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
   }
 
   return (
@@ -167,12 +358,13 @@ export default function Courses() {
               <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1.5 scrollbar-thin">
                 {courses.map((course) => {
                   const isActive = activeCourse?.id === course.id
+                  const overallPercent = course.progress?.percent || 0
                   return (
                     <div
                       key={course.id}
                       onClick={() => handleSelectCourse(course)}
                       className={cn(
-                        "group flex items-center justify-between p-3.5 rounded-xl border cursor-pointer relative transition-all duration-300 overflow-hidden",
+                        "group flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer relative transition-all duration-300 overflow-hidden",
                         isActive
                           ? "bg-accent/8 border-accent text-accent-light shadow-md shadow-accent/5"
                           : "bg-card border-border-subtle hover:border-border-hover text-text-secondary hover:text-text-primary hover:bg-hover/30"
@@ -181,28 +373,40 @@ export default function Courses() {
                       {isActive && (
                         <div className="absolute left-0 top-3 bottom-3 w-1 bg-accent rounded-r-md" />
                       )}
-                      <div className="flex items-center gap-3 min-w-0 pr-2">
-                        <PlaySquare className={cn(
-                          "h-5 w-5 shrink-0 transition-transform group-hover:scale-105",
-                          isActive ? "text-accent-light" : "text-text-muted"
-                        )} />
-                        <div className="min-w-0">
-                          <span className="text-xs font-bold truncate block leading-snug">{course.name}</span>
-                          <span className="text-[9px] text-text-muted/80 block mt-0.5 font-medium uppercase tracking-wider">
-                            {course.isPlaylist ? 'Playlist' : 'Single Video'}
-                          </span>
+                      <div className="flex items-center justify-between min-w-0 pr-1">
+                        <div className="flex items-center gap-3 min-w-0 pr-2">
+                          <PlaySquare className={cn(
+                            "h-5 w-5 shrink-0 transition-transform group-hover:scale-105",
+                            isActive ? "text-accent-light" : "text-text-muted"
+                          )} />
+                          <div className="min-w-0">
+                            <span className="text-xs font-bold truncate block leading-snug">{course.name}</span>
+                            <span className="text-[9px] text-text-muted/80 block mt-0.5 font-medium uppercase tracking-wider">
+                              {course.isPlaylist ? 'Playlist' : 'Single Video'}
+                            </span>
+                          </div>
                         </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setDeleteConfirmId(course.id)
+                          }}
+                          className="p-1.5 rounded-lg text-text-muted hover:text-semantic-red hover:bg-hover/60 transition-colors shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
+                          title="Delete course"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setDeleteConfirmId(course.id)
-                        }}
-                        className="p-1.5 rounded-lg text-text-muted hover:text-semantic-red hover:bg-hover/60 transition-colors shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                        title="Delete course"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
+
+                      {/* Mini playlist progress bar */}
+                      {overallPercent > 0 && (
+                        <div className="w-full bg-border-subtle/50 h-1 rounded-full mt-3 overflow-hidden">
+                          <div
+                            className="bg-accent h-full rounded-full transition-all"
+                            style={{ width: `${overallPercent}%` }}
+                          />
+                        </div>
+                      )}
                     </div>
                   )
                 })}
@@ -223,8 +427,8 @@ export default function Courses() {
                     onClick={() => setListCollapsed(!listCollapsed)}
                     className="h-8 text-xs flex items-center gap-1.5 bg-elevated border border-border hover:bg-hover text-text-primary transition-all font-semibold"
                   >
-                    {listCollapsed ? <Maximize2 className="h-3.5 w-3.5" /> : <Minimize2 className="h-3.5 w-3.5" />}
-                    {listCollapsed ? 'Show Course List' : 'Theater Mode'}
+                    {listCollapsed ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+                    {listCollapsed ? 'Show List' : 'Theater Mode'}
                   </Button>
                   <div className="h-4 w-[1px] bg-border-subtle" />
                   <span className="text-xs font-bold text-text-primary max-w-[200px] sm:max-w-xs truncate" title={activeCourse.name}>
@@ -243,10 +447,13 @@ export default function Courses() {
 
               {/* Side-by-Side split pane grid */}
               <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
-                {/* 65% width Video block */}
-                <div className="xl:col-span-2 flex flex-col justify-center">
+                
+                {/* 65% width Video + Tracker block */}
+                <div className="xl:col-span-2 space-y-4 flex flex-col">
+                  {/* Aspect-video Frame */}
                   <div className="w-full aspect-video rounded-2xl border border-border-subtle bg-black overflow-hidden shadow-2xl relative">
                     <iframe
+                      id="yt-iframe-player"
                       src={getEmbedUrl(activeCourse)}
                       title={activeCourse.name}
                       className="w-full h-full absolute inset-0"
@@ -254,9 +461,77 @@ export default function Courses() {
                       allowFullScreen
                     />
                   </div>
+
+                  {/* Playback time tracking widget */}
+                  <div className="p-4 bg-surface rounded-2xl border border-border-subtle/70 space-y-3 shadow-md">
+                    <div className="flex items-center justify-between flex-wrap gap-2">
+                      <div className="flex items-center gap-2 text-xs">
+                        <Clock className="h-4 w-4 text-accent-light" />
+                        <span className="font-bold text-text-primary">
+                          {activeVideoTitle || activeCourse.name}
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-semibold text-accent-light">
+                        {progressPercent}% Complete
+                        {duration > 0 && ` (${formatTime(duration - currentTime)} left)`}
+                      </div>
+                    </div>
+
+                    {/* Progress Slider */}
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={progressPercent}
+                        onChange={handleSliderChange}
+                        className="flex-1 accent-accent bg-border-subtle/50 h-1.5 rounded-lg appearance-none cursor-pointer"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Playlist Lecture History Logs */}
+                  {activeCourse.isPlaylist && getHistoryList(activeCourse).length > 0 && (
+                    <div className="bg-surface rounded-2xl border border-border-subtle/70 p-4 space-y-3.5 shadow-md">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-4 w-4 text-accent-light" />
+                        <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">Lecture History Log</span>
+                      </div>
+                      <div className="space-y-2.5 max-h-[180px] overflow-y-auto pr-1">
+                        {getHistoryList(activeCourse).map((vid) => (
+                          <div
+                            key={vid.id}
+                            className={cn(
+                              "flex items-center justify-between p-2.5 rounded-xl border border-border-subtle/50 text-xs transition-colors hover:bg-hover/20",
+                              activeVideoId === vid.id ? "bg-accent/5 border-accent/25" : "bg-card"
+                            )}
+                          >
+                            <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                onClick={() => setOverrideVideoId(vid.id)}
+                                className="h-7 w-7 rounded-full bg-accent/15 text-accent-light hover:bg-accent hover:text-white shrink-0"
+                              >
+                                <Play className="h-3 w-3 fill-current ml-0.5" />
+                              </Button>
+                              <span className="font-semibold text-text-primary truncate" title={vid.title}>
+                                {vid.title}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-3 shrink-0">
+                              <span className="text-[10px] text-text-muted font-bold whitespace-nowrap">
+                                {vid.percent}% • {formatTime(vid.duration - vid.currentTime)} left
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                {/* 35% width Notepad block (stretches to match video height) */}
+                {/* 35% width Notepad block */}
                 <div className="xl:col-span-1">
                   <Card className="border border-border-subtle bg-card h-full flex flex-col overflow-hidden shadow-md">
                     <CardHeader className="pb-3 border-b border-border-subtle/60 flex flex-row items-center justify-between shrink-0">
@@ -283,7 +558,7 @@ export default function Courses() {
                         {isNotesDirty ? 'Save Notes *' : 'Saved'}
                       </Button>
                     </CardHeader>
-                    <CardContent className="p-3 flex-1 flex flex-col min-h-[250px]">
+                    <CardContent className="p-3 flex-1 flex flex-col min-h-[300px]">
                       <textarea
                         value={localNotes}
                         onChange={(e) => {
