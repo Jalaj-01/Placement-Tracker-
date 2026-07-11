@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity } from 'lucide-react'
+import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCourses } from '@/hooks/useCourses'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
