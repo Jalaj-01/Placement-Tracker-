@@ -71,7 +71,7 @@ export default function Landing() {
           <div className="h-8 w-8 rounded-lg bg-accent/20 border border-accent/40 flex items-center justify-center">
             <Code2 className="h-4.5 w-4.5 text-accent-light" />
           </div>
-          <span className="font-bold text-sm tracking-tight text-white uppercase">PlacementTracker</span>
+          <span className="font-bold text-sm tracking-tight text-white uppercase">Placify</span>
         </div>
         <Button
           variant="outline"
@@ -172,7 +172,7 @@ export default function Landing() {
       {/* Footer copyright */}
       <footer className="border-t border-border-subtle/30 py-8 relative z-10 text-center">
         <p className="text-[10px] text-text-muted">
-          © {new Date().getFullYear()} PlacementTracker. Prepare with confidence.
+          © {new Date().getFullYear()} Placify. Prepare with confidence.
         </p>
       </footer>
     </div>

@@ -32,7 +32,7 @@ export default function Sidebar({ user, onSignOut }) {
       <div className="flex items-center justify-between p-4 border-b border-border-subtle">
         {!sidebarCollapsed && (
           <motion.span layout className="text-card-title font-bold text-accent-light">
-            PlacementTracker
+            Placify
           </motion.span>
         )}
         <button onClick={toggleSidebar} className="p-1.5 rounded-lg hover:bg-hover text-text-secondary">

@@ -10,8 +10,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['icons/*.png'],
       manifest: {
-        name: 'PlacementTracker',
-        short_name: 'PlacementTracker',
+        name: 'Placify',
+        short_name: 'Placify',
         theme_color: '#0a0a0f',
         background_color: '#0a0a0f',
         display: 'standalone',
