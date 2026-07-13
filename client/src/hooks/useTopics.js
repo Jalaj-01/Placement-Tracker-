@@ -1,24 +1,45 @@
 import { useState, useEffect } from 'react'
-import { subscribeTopics, updateTopic, addTopic, deleteTopic, deleteCategory } from '@/services/firestoreService'
+import { subscribeTopics, updateTopic, addTopic, deleteTopic, deleteCategory, subscribeProfile, updateProfile } from '@/services/firestoreService'
 
 export function useTopics(uid) {
   const [topics, setTopics] = useState([])
+  const [profile, setProfile] = useState(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     if (!uid) { setLoading(false); return }
-    return subscribeTopics(uid, (data) => {
+    
+    const unsubTopics = subscribeTopics(uid, (data) => {
       setTopics(data)
       setLoading(false)
     })
+
+    const unsubProfile = subscribeProfile(uid, (pData) => {
+      setProfile(pData)
+    })
+
+    return () => {
+      unsubTopics()
+      unsubProfile()
+    }
   }, [uid])
 
   return {
     topics,
+    profile,
     loading,
     updateTopic: (id, data) => updateTopic(uid, id, data),
     addTopic: (data) => addTopic(uid, data),
     deleteTopic: (id) => deleteTopic(uid, id),
     deleteCategory: (categoryName) => deleteCategory(uid, categoryName),
+    updateCategoryOrder: (subject, newOrder) => {
+      const currentOrders = profile?.categoryOrders || {}
+      return updateProfile(uid, {
+        categoryOrders: {
+          ...currentOrders,
+          [subject]: newOrder
+        }
+      })
+    }
   }
 }

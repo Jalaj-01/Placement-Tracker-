@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Terminal as TerminalIcon, Play, Save, Trash2, Plus, Loader2, FileCode, CheckCircle2, Download } from 'lucide-react'
+import { Terminal as TerminalIcon, Play, Save, Trash2, Plus, Loader2, FileCode, CheckCircle2, Download, Pencil } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { usePlayground } from '@/hooks/usePlayground'
 import { Button } from '@/components/ui/button'
@@ -183,11 +183,15 @@ export default function Playground() {
             <div className="flex items-center justify-between p-3 border-b border-border-subtle bg-surface">
               <div className="flex items-center gap-2 flex-1 max-w-xs">
                 <FileCode className="h-4 w-4 text-text-muted shrink-0" />
-                <Input
-                  value={fileName}
-                  onChange={(e) => setFileName(e.target.value)}
-                  className="h-8 bg-transparent border-none text-xs text-text-primary font-medium focus-visible:ring-0 focus-visible:ring-offset-0 px-1"
-                />
+                <div className="relative flex items-center flex-1 group">
+                  <Input
+                    value={fileName}
+                    onChange={(e) => setFileName(e.target.value)}
+                    className="h-8 bg-card border border-border-subtle hover:border-border focus:border-accent text-xs text-text-primary font-medium px-2 rounded-md transition-all pr-8 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0"
+                    placeholder="filename.py"
+                  />
+                  <Pencil className="h-3.5 w-3.5 text-text-muted absolute right-2.5 opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </div>
               </div>
 
               <div className="flex items-center gap-2 shrink-0">

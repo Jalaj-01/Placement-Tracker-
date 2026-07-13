@@ -1,12 +1,23 @@
 import { useState } from 'react'
-import { ChevronDown, Plus, Trash2 } from 'lucide-react'
+import { ChevronDown, Plus, Trash2, GripVertical } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import TopicCard from './TopicCard'
 
-export default function TopicChecklist({ title, topics, onUpdate, onAdd, onDelete, onDeleteCategory }) {
+export default function TopicChecklist({
+  title,
+  topics,
+  onUpdate,
+  onAdd,
+  onDelete,
+  onDeleteCategory,
+  onDragHandleMouseDown,
+  onDragHandleMouseUp,
+  onDragHandleTouchStart,
+  onDragHandleTouchEnd
+}) {
   const [open, setOpen] = useState(true)
   const [adding, setAdding] = useState(false)
   const [newName, setNewName] = useState('')
@@ -27,7 +38,18 @@ export default function TopicChecklist({ title, topics, onUpdate, onAdd, onDelet
         onClick={() => setOpen(!open)}
         className="w-full flex items-center justify-between p-4 hover:bg-hover/30 transition-colors"
       >
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <div
+            onMouseDown={onDragHandleMouseDown}
+            onMouseUp={onDragHandleMouseUp}
+            onTouchStart={onDragHandleTouchStart}
+            onTouchEnd={onDragHandleTouchEnd}
+            onClick={(e) => e.stopPropagation()}
+            className="cursor-grab active:cursor-grabbing p-1 rounded text-text-muted hover:text-text-primary hover:bg-hover transition-colors shrink-0"
+            title="Drag to reorder"
+          >
+            <GripVertical className="h-4 w-4" />
+          </div>
           <ChevronDown className={cn('h-4 w-4 text-text-muted transition-transform', !open && '-rotate-90')} />
           <span className="text-card-title font-medium text-text-primary">{title}</span>
           <span className="text-micro text-text-muted">{done}/{topics.length} done</span>

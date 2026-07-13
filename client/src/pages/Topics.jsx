@@ -11,10 +11,118 @@ import TopicChecklist from '@/components/topics/TopicChecklist'
 import SubjectFilter from '@/components/topics/SubjectFilter'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
 import { SUBJECT_LABELS } from '@/utils/topicSeeds'
+import { cn } from '@/lib/utils'
 
 export default function Topics() {
   const { user } = useAuth()
-  const { topics, loading, updateTopic, addTopic, deleteTopic, deleteCategory } = useTopics(user?.uid)
+  const { topics, loading, updateTopic, addTopic, deleteTopic, deleteCategory, profile, updateCategoryOrder } = useTopics(user?.uid)
+
+  const [localOrders, setLocalOrders] = useState({})
+  const [draggedCategory, setDraggedCategory] = useState(null)
+  const [draggedSubject, setDraggedSubject] = useState(null)
+  const [canDrag, setCanDrag] = useState(null)
+
+  // Sync localOrders with profile and topics when not actively dragging
+  useEffect(() => {
+    if (loading || draggedCategory !== null) return
+
+    const newOrders = {}
+
+    // 1. DSA
+    const dsaCategories = []
+    topics.filter((t) => t.subject === 'DSA').forEach((t) => {
+      if (!dsaCategories.includes(t.category)) dsaCategories.push(t.category)
+    })
+    const dsaDbOrder = profile?.categoryOrders?.['DSA'] || []
+    newOrders['DSA'] = [...dsaCategories].sort((a, b) => {
+      const idxA = dsaDbOrder.indexOf(a)
+      const idxB = dsaDbOrder.indexOf(b)
+      if (idxA === -1 && idxB === -1) return 0
+      if (idxA === -1) return 1
+      if (idxB === -1) return -1
+      return idxA - idxB
+    })
+
+    // 2. CS Theory subjects
+    const csSubjects = ['OS', 'DBMS', 'CN', 'OOPS']
+    csSubjects.forEach((sub) => {
+      const csCategories = []
+      topics.filter((t) => t.subject === sub).forEach((t) => {
+        if (!csCategories.includes(t.category)) csCategories.push(t.category)
+      })
+      if (csCategories.length > 0) {
+        const dbOrder = profile?.categoryOrders?.[sub] || []
+        newOrders[sub] = [...csCategories].sort((a, b) => {
+          const idxA = dbOrder.indexOf(a)
+          const idxB = dbOrder.indexOf(b)
+          if (idxA === -1 && idxB === -1) return 0
+          if (idxA === -1) return 1
+          if (idxB === -1) return -1
+          return idxA - idxB
+        })
+      }
+    })
+
+    // 3. Aptitude subjects
+    const aptSubjects = ['Aptitude-Quant', 'Aptitude-Logical', 'Aptitude-Verbal']
+    aptSubjects.forEach((sub) => {
+      const aptCategories = []
+      topics.filter((t) => t.subject === sub).forEach((t) => {
+        if (!aptCategories.includes(t.category)) aptCategories.push(t.category)
+      })
+      if (aptCategories.length > 0) {
+        const dbOrder = profile?.categoryOrders?.[sub] || []
+        newOrders[sub] = [...aptCategories].sort((a, b) => {
+          const idxA = dbOrder.indexOf(a)
+          const idxB = dbOrder.indexOf(b)
+          if (idxA === -1 && idxB === -1) return 0
+          if (idxA === -1) return 1
+          if (idxB === -1) return -1
+          return idxA - idxB
+        })
+      }
+    })
+
+    setLocalOrders(newOrders)
+  }, [topics, profile, loading, draggedCategory])
+
+  const handleDragStart = (e, category, subject) => {
+    setDraggedCategory(category)
+    setDraggedSubject(subject)
+    e.dataTransfer.effectAllowed = 'move'
+  }
+
+  const handleDragOver = (e, targetCategory, subject) => {
+    e.preventDefault()
+    if (draggedCategory === null || draggedSubject !== subject || draggedCategory === targetCategory) return
+
+    const currentOrder = localOrders[subject] || []
+    const oldIndex = currentOrder.indexOf(draggedCategory)
+    const newIndex = currentOrder.indexOf(targetCategory)
+
+    if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+      const newOrder = [...currentOrder]
+      newOrder.splice(oldIndex, 1)
+      newOrder.splice(newIndex, 0, draggedCategory)
+      
+      setLocalOrders((prev) => ({
+        ...prev,
+        [subject]: newOrder
+      }))
+    }
+  }
+
+  const handleDragEnd = async () => {
+    if (draggedCategory !== null && draggedSubject !== null) {
+      const finalOrder = localOrders[draggedSubject]
+      if (finalOrder) {
+        await updateCategoryOrder(draggedSubject, finalOrder)
+      }
+    }
+    setDraggedCategory(null)
+    setDraggedSubject(null)
+    setCanDrag(null)
+  }
 
   
   const [showAddSection, setShowAddSection] = useState(false)
@@ -70,8 +178,21 @@ export default function Topics() {
         if (!groups[t.category]) groups[t.category] = []
         groups[t.category].push(t)
       })
-      // Ensure groups are in structured order or just return them
-      return groups
+      
+      const order = localOrders['DSA'] || []
+      const sortedGroups = {}
+      const sortedKeys = Object.keys(groups).sort((a, b) => {
+        const idxA = order.indexOf(a)
+        const idxB = order.indexOf(b)
+        if (idxA === -1 && idxB === -1) return 0
+        if (idxA === -1) return 1
+        if (idxB === -1) return -1
+        return idxA - idxB
+      })
+      sortedKeys.forEach((k) => {
+        sortedGroups[k] = groups[k]
+      })
+      return sortedGroups
     }
 
     if (activeTab === 'cs-theory') {
@@ -85,6 +206,21 @@ export default function Topics() {
             if (!groups[sub][t.category]) groups[sub][t.category] = []
             groups[sub][t.category].push(t)
           })
+          
+          const order = localOrders[sub] || []
+          const sortedCategories = {}
+          const sortedKeys = Object.keys(groups[sub]).sort((a, b) => {
+            const idxA = order.indexOf(a)
+            const idxB = order.indexOf(b)
+            if (idxA === -1 && idxB === -1) return 0
+            if (idxA === -1) return 1
+            if (idxB === -1) return -1
+            return idxA - idxB
+          })
+          sortedKeys.forEach((k) => {
+            sortedCategories[k] = groups[sub][k]
+          })
+          groups[sub] = sortedCategories
         }
       })
       return groups
@@ -101,13 +237,28 @@ export default function Topics() {
             if (!groups[sub][t.category]) groups[sub][t.category] = []
             groups[sub][t.category].push(t)
           })
+          
+          const order = localOrders[sub] || []
+          const sortedCategories = {}
+          const sortedKeys = Object.keys(groups[sub]).sort((a, b) => {
+            const idxA = order.indexOf(a)
+            const idxB = order.indexOf(b)
+            if (idxA === -1 && idxB === -1) return 0
+            if (idxA === -1) return 1
+            if (idxB === -1) return -1
+            return idxA - idxB
+          })
+          sortedKeys.forEach((k) => {
+            sortedCategories[k] = groups[sub][k]
+          })
+          groups[sub] = sortedCategories
         }
       })
       return groups
     }
 
     return {}
-  }, [topics, activeTab, loading])
+  }, [topics, activeTab, loading, localOrders])
 
   // Overall calculations for progress meters
   const progressStats = useMemo(() => {
@@ -268,15 +419,30 @@ export default function Topics() {
               const filteredList = list.filter(filterTopic)
               if (filteredList.length === 0 && search) return null
               return (
-                <TopicChecklist
+                <div
                   key={category}
-                  title={category}
-                  topics={filteredList}
-                  onUpdate={handleUpdate}
-                  onAdd={(name) => handleAddCustom('DSA', category, name)}
-                  onDelete={deleteTopic}
-                  onDeleteCategory={setDeleteConfirmSection}
-                />
+                  draggable={canDrag === category}
+                  onDragStart={(e) => handleDragStart(e, category, 'DSA')}
+                  onDragOver={(e) => handleDragOver(e, category, 'DSA')}
+                  onDragEnd={handleDragEnd}
+                  className={cn(
+                    "transition-all duration-200",
+                    draggedCategory === category && draggedSubject === 'DSA' && "opacity-45 scale-[0.98] border border-dashed border-accent-light rounded-card"
+                  )}
+                >
+                  <TopicChecklist
+                    title={category}
+                    topics={filteredList}
+                    onUpdate={handleUpdate}
+                    onAdd={(name) => handleAddCustom('DSA', category, name)}
+                    onDelete={deleteTopic}
+                    onDeleteCategory={setDeleteConfirmSection}
+                    onDragHandleMouseDown={() => setCanDrag(category)}
+                    onDragHandleMouseUp={() => setCanDrag(null)}
+                    onDragHandleTouchStart={() => setCanDrag(category)}
+                    onDragHandleTouchEnd={() => setCanDrag(null)}
+                  />
+                </div>
               )
             })
           )}
@@ -294,15 +460,30 @@ export default function Topics() {
                       const filteredList = list.filter(filterTopic)
                       if (filteredList.length === 0 && search) return null
                       return (
-                        <TopicChecklist
+                        <div
                           key={category}
-                          title={category}
-                          topics={filteredList}
-                          onUpdate={handleUpdate}
-                          onAdd={(name) => handleAddCustom(subject, category, name)}
-                          onDelete={deleteTopic}
-                          onDeleteCategory={setDeleteConfirmSection}
-                        />
+                          draggable={canDrag === category}
+                          onDragStart={(e) => handleDragStart(e, category, subject)}
+                          onDragOver={(e) => handleDragOver(e, category, subject)}
+                          onDragEnd={handleDragEnd}
+                          className={cn(
+                            "transition-all duration-200",
+                            draggedCategory === category && draggedSubject === subject && "opacity-45 scale-[0.98] border border-dashed border-accent-light rounded-card"
+                          )}
+                        >
+                          <TopicChecklist
+                            title={category}
+                            topics={filteredList}
+                            onUpdate={handleUpdate}
+                            onAdd={(name) => handleAddCustom(subject, category, name)}
+                            onDelete={deleteTopic}
+                            onDeleteCategory={setDeleteConfirmSection}
+                            onDragHandleMouseDown={() => setCanDrag(category)}
+                            onDragHandleMouseUp={() => setCanDrag(null)}
+                            onDragHandleTouchStart={() => setCanDrag(category)}
+                            onDragHandleTouchEnd={() => setCanDrag(null)}
+                          />
+                        </div>
                       )
                     })}
                   </div>
@@ -326,15 +507,30 @@ export default function Topics() {
                       const filteredList = list.filter(filterTopic)
                       if (filteredList.length === 0 && search) return null
                       return (
-                        <TopicChecklist
+                        <div
                           key={category}
-                          title={category}
-                          topics={filteredList}
-                          onUpdate={handleUpdate}
-                          onAdd={(name) => handleAddCustom(subject, category, name)}
-                          onDelete={deleteTopic}
-                          onDeleteCategory={setDeleteConfirmSection}
-                        />
+                          draggable={canDrag === category}
+                          onDragStart={(e) => handleDragStart(e, category, subject)}
+                          onDragOver={(e) => handleDragOver(e, category, subject)}
+                          onDragEnd={handleDragEnd}
+                          className={cn(
+                            "transition-all duration-200",
+                            draggedCategory === category && draggedSubject === subject && "opacity-45 scale-[0.98] border border-dashed border-accent-light rounded-card"
+                          )}
+                        >
+                          <TopicChecklist
+                            title={category}
+                            topics={filteredList}
+                            onUpdate={handleUpdate}
+                            onAdd={(name) => handleAddCustom(subject, category, name)}
+                            onDelete={deleteTopic}
+                            onDeleteCategory={setDeleteConfirmSection}
+                            onDragHandleMouseDown={() => setCanDrag(category)}
+                            onDragHandleMouseUp={() => setCanDrag(null)}
+                            onDragHandleTouchStart={() => setCanDrag(category)}
+                            onDragHandleTouchEnd={() => setCanDrag(null)}
+                          />
+                        </div>
                       )
                     })}
                   </div>
