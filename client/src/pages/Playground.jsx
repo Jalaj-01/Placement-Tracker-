@@ -7,11 +7,13 @@ import { Input } from '@/components/ui/input'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Badge } from '@/components/ui/badge'
+import { apiCall } from '@/services/apiClient'
 
 export default function Playground() {
   const { user } = useAuth()
   const { files, loading: loadingFiles, saveFile, deleteFile } = usePlayground(user?.uid)
 
+  const [language, setLanguage] = useState('python') // 'python' | 'java'
   const [currentFileId, setCurrentFileId] = useState('')
   const [fileName, setFileName] = useState('solution.py')
   const [code, setCode] = useState("print('Hello from Python Playground!')\n\n# Try writing a function:\ndef add(a, b):\n    return a + b\n\nprint('Result:', add(5, 7))")
@@ -21,6 +23,12 @@ export default function Playground() {
   const [loadingRunner, setLoadingRunner] = useState(true)
   const [running, setRunning] = useState(false)
   const [saving, setSaving] = useState(false)
+
+  const PYTHON_DEFAULT_FILE = 'solution.py'
+  const PYTHON_DEFAULT_CODE = "print('Hello from Python Playground!')\n\n# Try writing a function:\ndef add(a, b):\n    return a + b\n\nprint('Result:', add(5, 7))"
+
+  const JAVA_DEFAULT_FILE = 'Main.java'
+  const JAVA_DEFAULT_CODE = "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from Java Playground!\");\n        \n        int result = add(5, 7);\n        System.out.println(\"Result: \" + result);\n    }\n    \n    public static int add(int a, int b) {\n        return a + b;\n    }\n}"
 
   // Dynamically load Pyodide WebAssembly script from CDN
   useEffect(() => {
@@ -46,12 +54,56 @@ export default function Playground() {
     }
   }, [])
 
+  // Filter files by language extension
+  const filteredFiles = files.filter((f) => {
+    if (language === 'python') {
+      return f.name.endsWith('.py') || !f.name.includes('.')
+    } else {
+      return f.name.endsWith('.java')
+    }
+  })
+
+  // Handle switching language
+  const handleLanguageChange = (newLang) => {
+    setLanguage(newLang)
+    setCurrentFileId('')
+    setOutput('')
+
+    const filtered = files.filter((f) => {
+      if (newLang === 'python') {
+        return f.name.endsWith('.py') || !f.name.includes('.')
+      } else {
+        return f.name.endsWith('.java')
+      }
+    })
+
+    if (filtered.length > 0) {
+      const selected = filtered[0]
+      setCurrentFileId(selected.id)
+      setFileName(selected.name)
+      setCode(selected.code)
+    } else {
+      if (newLang === 'python') {
+        setFileName(PYTHON_DEFAULT_FILE)
+        setCode(PYTHON_DEFAULT_CODE)
+      } else {
+        setFileName(JAVA_DEFAULT_FILE)
+        setCode(JAVA_DEFAULT_CODE)
+      }
+    }
+  }
+
   // Auto-load code when user switches selected file
   const handleSelectFile = (fileId) => {
     if (fileId === 'new') {
       setCurrentFileId('')
-      setFileName('new_script.py')
-      setCode("# New script\nprint('Hello world!')")
+      if (language === 'python') {
+        setFileName('new_script.py')
+        setCode("# New script\nprint('Hello world!')")
+      } else {
+        setFileName('Main.java')
+        setCode("public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello world!\");\n    }\n}")
+      }
       return
     }
 
@@ -81,8 +133,13 @@ export default function Playground() {
     try {
       await deleteFile(currentFileId)
       setCurrentFileId('')
-      setFileName('solution.py')
-      setCode("print('File deleted. Write some code...')")
+      if (language === 'python') {
+        setFileName(PYTHON_DEFAULT_FILE)
+        setCode("print('File deleted. Write some code...')")
+      } else {
+        setFileName(JAVA_DEFAULT_FILE)
+        setCode("public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"File deleted. Write some code...\");\n    }\n}")
+      }
     } catch (err) {
       setOutput('Failed to delete file: ' + err.message)
     }
@@ -92,40 +149,87 @@ export default function Playground() {
     const element = document.createElement('a')
     const file = new Blob([code], { type: 'text/plain' })
     element.href = URL.createObjectURL(file)
-    element.download = fileName || 'solution.py'
+    element.download = fileName || (language === 'python' ? 'solution.py' : 'Main.java')
     document.body.appendChild(element)
     element.click()
     document.body.removeChild(element)
   }
 
   const handleRun = async () => {
-    if (!pyodide) return
     setRunning(true)
-    setOutput('Executing in WebAssembly sandbox...\n')
-    const outputBuffer = []
+    setOutput('Executing...\n')
 
-    pyodide.setStdout({
-      batched: (str) => {
-        outputBuffer.push(str)
-        setOutput(outputBuffer.join('\n'))
-      },
-    })
-    pyodide.setStderr({
-      batched: (str) => {
-        outputBuffer.push('[Error] ' + str)
-        setOutput(outputBuffer.join('\n'))
-      },
-    })
-
-    try {
-      await pyodide.runPythonAsync(code)
-      if (outputBuffer.length === 0) {
-        setOutput('Execution finished successfully (No output).')
+    if (language === 'python') {
+      if (!pyodide) {
+        setOutput('Python WebAssembly engine is not loaded yet.')
+        setRunning(false)
+        return
       }
-    } catch (err) {
-      setOutput((prev) => prev + '\nTraceback Error:\n' + err.message)
-    } finally {
-      setRunning(false)
+      setOutput('Executing in WebAssembly sandbox...\n')
+      const outputBuffer = []
+
+      pyodide.setStdout({
+        batched: (str) => {
+          outputBuffer.push(str)
+          setOutput(outputBuffer.join('\n'))
+        },
+      })
+      pyodide.setStderr({
+        batched: (str) => {
+          outputBuffer.push('[Error] ' + str)
+          setOutput(outputBuffer.join('\n'))
+        },
+      })
+
+      try {
+        await pyodide.runPythonAsync(code)
+        if (outputBuffer.length === 0) {
+          setOutput('Execution finished successfully (No output).')
+        }
+      } catch (err) {
+        setOutput((prev) => prev + '\nTraceback Error:\n' + err.message)
+      } finally {
+        setRunning(false)
+      }
+    } else {
+      setOutput('Compiling and running Java code...\n')
+      try {
+        const details = await apiCall('/api/execute/java', {
+          method: 'POST',
+          body: { code },
+        })
+
+        if (details) {
+          let runOutput = ''
+          if (details.build_stderr) {
+            runOutput += `[Compilation Error]\n${details.build_stderr}\n`
+          }
+          if (details.build_stdout) {
+            runOutput += `[Compilation Output]\n${details.build_stdout}\n`
+          }
+          if (details.stderr) {
+            runOutput += `[Runtime Error]\n${details.stderr}\n`
+          }
+          if (details.stdout) {
+            runOutput += details.stdout
+          }
+
+          if (!runOutput) {
+            if (details.result === 'success') {
+              runOutput = 'Execution finished successfully (No output).'
+            } else {
+              runOutput = `Execution finished with result: ${details.result}`
+            }
+          }
+          setOutput(runOutput)
+        } else {
+          setOutput('Failed to retrieve execution details.')
+        }
+      } catch (err) {
+        setOutput('Error executing Java code: ' + err.message)
+      } finally {
+        setRunning(false)
+      }
     }
   }
 
@@ -138,12 +242,42 @@ export default function Playground() {
             <TerminalIcon className="h-5 w-5 text-accent-light" />
           </div>
           <div>
-            <h1 className="text-page font-bold text-text-primary">Python Playground</h1>
-            <p className="text-secondary text-text-secondary">Code, compile, and store solutions directly in the browser</p>
+            <h1 className="text-page font-bold text-text-primary">
+              {language === 'python' ? 'Python Playground' : 'Java Playground'}
+            </h1>
+            <p className="text-secondary text-text-secondary">
+              {language === 'python'
+                ? 'Code, compile, and store solutions directly in the browser via WebAssembly'
+                : 'Code, compile, and store solutions in the cloud via remote compiler'}
+            </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Language Toggle */}
+          <div className="flex bg-surface p-1 rounded-lg border border-border-subtle shrink-0">
+            <button
+              onClick={() => handleLanguageChange('python')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                language === 'python'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              Python
+            </button>
+            <button
+              onClick={() => handleLanguageChange('java')}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
+                language === 'java'
+                  ? 'bg-accent text-white shadow-sm'
+                  : 'text-text-secondary hover:text-text-primary'
+              }`}
+            >
+              Java
+            </button>
+          </div>
+
           {/* File selector */}
           <Select value={currentFileId || 'new'} onValueChange={handleSelectFile}>
             <SelectTrigger className="w-[180px] bg-surface border border-border-subtle text-xs">
@@ -153,7 +287,7 @@ export default function Playground() {
               <SelectItem value="new" className="text-accent-light font-medium flex items-center gap-1.5">
                 <Plus className="h-3 w-3 inline mr-1" /> New Script
               </SelectItem>
-              {files.map((f) => (
+              {filteredFiles.map((f) => (
                 <SelectItem key={f.id} value={f.id}>
                   {f.name}
                 </SelectItem>
@@ -162,14 +296,23 @@ export default function Playground() {
           </Select>
 
           {/* Engine Load indicator */}
-          <Badge variant={loadingRunner ? 'secondary' : 'success'} className="h-7 flex gap-1.5 text-micro items-center">
-            {loadingRunner ? (
-              <>
-                <Loader2 className="h-3 w-3 animate-spin" /> Load Wasm Engine
-              </>
+          <Badge
+            variant={language === 'python' && loadingRunner ? 'secondary' : 'success'}
+            className="h-7 flex gap-1.5 text-micro items-center"
+          >
+            {language === 'python' ? (
+              loadingRunner ? (
+                <>
+                  <Loader2 className="h-3 w-3 animate-spin" /> Load Wasm Engine
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="h-3.5 w-3.5 text-semantic-green shrink-0" /> Wasm Active
+                </>
+              )
             ) : (
               <>
-                <CheckCircle2 className="h-3.5 w-3.5 text-semantic-green shrink-0" /> Wasm Active
+                <CheckCircle2 className="h-3.5 w-3.5 text-semantic-green shrink-0" /> Cloud Compiler Active
               </>
             )}
           </Badge>
@@ -188,7 +331,7 @@ export default function Playground() {
                     value={fileName}
                     onChange={(e) => setFileName(e.target.value)}
                     className="h-8 bg-card border border-border-subtle hover:border-border focus:border-accent text-xs text-text-primary font-medium px-2 rounded-md transition-all pr-8 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0"
-                    placeholder="filename.py"
+                    placeholder={language === 'python' ? 'filename.py' : 'Main.java'}
                   />
                   <Pencil className="h-3.5 w-3.5 text-text-muted absolute right-2.5 opacity-50 group-hover:opacity-100 transition-opacity pointer-events-none" />
                 </div>
@@ -238,7 +381,7 @@ export default function Playground() {
                 onClick={handleDownload}
                 className="flex items-center gap-1.5 text-xs text-text-secondary bg-elevated border border-border hover:bg-hover"
               >
-                <Download className="h-4 w-4 text-text-muted" /> Download .py
+                <Download className="h-4 w-4 text-text-muted" /> Download {language === 'python' ? '.py' : '.java'}
               </Button>
               
               <div className="flex gap-2">
@@ -253,7 +396,12 @@ export default function Playground() {
                   Save Script
                 </Button>
                 
-                <Button size="sm" onClick={handleRun} disabled={loadingRunner || running} className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={handleRun}
+                  disabled={(language === 'python' && loadingRunner) || running}
+                  className="flex items-center gap-2"
+                >
                   {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />} Run Code
                 </Button>
               </div>
@@ -275,7 +423,10 @@ export default function Playground() {
 
             <CardContent className="p-4 flex-1 bg-base overflow-y-auto min-h-[300px]">
               <pre className="text-xs font-mono whitespace-pre-wrap leading-relaxed text-semantic-green">
-                {output || 'Output console is clear. Write and run python scripts.'}
+                {output ||
+                  `Output console is clear. Write and run ${
+                    language === 'python' ? 'python' : 'java'
+                  } scripts.`}
               </pre>
             </CardContent>
           </Card>

@@ -135,7 +135,7 @@ function AppContent() {
           path="/playground"
           element={
             <PageWrapper>
-              <TopBar title="Python Playground" />
+              <TopBar title="Code Playground" />
               <Playground />
             </PageWrapper>
           }

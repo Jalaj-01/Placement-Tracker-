@@ -5,6 +5,7 @@ import admin from 'firebase-admin'
 import { verifyAuth } from './middleware/auth.js'
 import parseUrlRouter from './routes/parseUrl.js'
 import aiRouter from './routes/ai.js'
+import executeRouter from './routes/execute.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001
@@ -36,6 +37,7 @@ app.get('/health', (_req, res) => res.json({ status: 'ok' }))
 
 app.use('/api/parse-url', verifyAuth, parseUrlRouter)
 app.use('/api/ai', verifyAuth, aiRouter)
+app.use('/api/execute', verifyAuth, executeRouter)
 
 app.use((err, _req, res, _next) => {
   console.error(err)
