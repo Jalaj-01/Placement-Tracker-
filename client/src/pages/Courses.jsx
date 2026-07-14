@@ -1,12 +1,17 @@
 import { useState, useEffect } from 'react'
-import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2 } from 'lucide-react'
+import { PlaySquare, Youtube, Plus, Trash2, Save, Loader2, BookOpen, Clock, AlertCircle, Play, ChevronRight, Activity, Minimize2, Maximize2, Share2, Terminal, CheckCircle2, Download, Pencil, FileCode } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useCourses } from '@/hooks/useCourses'
+import { usePlayground } from '@/hooks/usePlayground'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
+import { apiCall } from '@/services/apiClient'
+import ShareDialog from '@/components/share/ShareDialog'
+import { Badge } from '@/components/ui/badge'
 
 export default function Courses() {
   const { user } = useAuth()
@@ -16,6 +21,7 @@ export default function Courses() {
   
   // Layout states
   const [listCollapsed, setListCollapsed] = useState(false)
+  const [showPlayground, setShowPlayground] = useState(false)
 
   // Add course states
   const [showAdd, setShowAdd] = useState(false)
@@ -37,6 +43,19 @@ export default function Courses() {
   const [activeVideoId, setActiveVideoId] = useState('')
   const [overrideVideoId, setOverrideVideoId] = useState('')
 
+  // Sharing & Coding states
+  const { files = [], saveFile, deleteFile } = usePlayground(user?.uid)
+  const [shareItemData, setShareItemData] = useState(null)
+  const [pgLanguage, setPgLanguage] = useState('python')
+  const [pgFileId, setPgFileId] = useState('')
+  const [pgFileName, setPgFileName] = useState('solution.py')
+  const [pgCode, setPgCode] = useState("print('Hello from side-by-side Playground!')")
+  const [pgOutput, setPgOutput] = useState('')
+  const [pgRunning, setPgRunning] = useState(false)
+  const [pgSaving, setPgSaving] = useState(false)
+  const [pgPyodide, setPgPyodide] = useState(null)
+  const [pgLoadingRunner, setPgLoadingRunner] = useState(true)
+
   // Dialog state
   const [deleteConfirmId, setDeleteConfirmId] = useState(null)
 
@@ -49,6 +68,207 @@ export default function Courses() {
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag)
     }
   }, [])
+
+  // Dynamically load Pyodide for Courses Playground on-demand
+  useEffect(() => {
+    if (!showPlayground || pgLanguage !== 'python' || pgPyodide) return
+    setPgLoadingRunner(true)
+
+    const script = document.createElement('script')
+    script.src = 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/pyodide.js'
+    script.async = true
+    script.onload = async () => {
+      try {
+        const loaded = await window.loadPyodide({
+          indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.26.1/full/',
+        })
+        setPgPyodide(loaded)
+        setPgLoadingRunner(false)
+      } catch (err) {
+        setPgOutput('Failed to load Python Wasm engine: ' + err.message)
+        setPgLoadingRunner(false)
+      }
+    }
+    document.body.appendChild(script)
+
+    return () => {
+      document.body.removeChild(script)
+    }
+  }, [showPlayground, pgLanguage, pgPyodide])
+
+  const handlePgRun = async () => {
+    setPgRunning(true)
+    setPgOutput('Executing...\n')
+
+    if (pgLanguage === 'python') {
+      if (!pgPyodide) {
+        setPgOutput('Python WebAssembly engine is not loaded yet.')
+        setPgRunning(false)
+        return
+      }
+      const outputBuffer = []
+      pgPyodide.setStdout({
+        batched: (str) => {
+          outputBuffer.push(str)
+          setPgOutput(outputBuffer.join('\n'))
+        },
+      })
+      pgPyodide.setStderr({
+        batched: (str) => {
+          outputBuffer.push('[Error] ' + str)
+          setPgOutput(outputBuffer.join('\n'))
+        },
+      })
+
+      try {
+        await pgPyodide.runPythonAsync(pgCode)
+        if (outputBuffer.length === 0) {
+          setPgOutput('Execution finished successfully (No output).')
+        }
+      } catch (err) {
+        setPgOutput((prev) => prev + '\nTraceback Error:\n' + err.message)
+      } finally {
+        setPgRunning(false)
+      }
+    } else {
+      setPgOutput('Compiling and running Java code...\n')
+      try {
+        const details = await apiCall('/api/execute/java', {
+          method: 'POST',
+          body: { code: pgCode },
+        })
+
+        if (details) {
+          let runOutput = ''
+          if (details.build_stderr) {
+            runOutput += `[Compilation Error]\n${details.build_stderr}\n`
+          }
+          if (details.build_stdout) {
+            runOutput += `[Compilation Output]\n${details.build_stdout}\n`
+          }
+          if (details.stderr) {
+            runOutput += `[Runtime Error]\n${details.stderr}\n`
+          }
+          if (details.stdout) {
+            runOutput += details.stdout
+          }
+
+          if (!runOutput) {
+            if (details.result === 'success') {
+              runOutput = 'Execution finished successfully (No output).'
+            } else {
+              runOutput = `Execution finished with result: ${details.result}`
+            }
+          }
+          setPgOutput(runOutput)
+        } else {
+          setPgOutput('Failed to retrieve execution details.')
+        }
+      } catch (err) {
+        setPgOutput('Error executing Java code: ' + err.message)
+      } finally {
+        setPgRunning(false)
+      }
+    }
+  }
+
+  const handlePgSave = async () => {
+    if (!pgFileName.trim()) return
+    setPgSaving(true)
+    try {
+      const id = await saveFile(pgFileId || null, pgFileName, pgCode)
+      setPgFileId(id)
+    } catch (err) {
+      setPgOutput('Failed to save file: ' + err.message)
+    } finally {
+      setPgSaving(false)
+    }
+  }
+
+  const handlePgDelete = async () => {
+    if (!pgFileId) return
+    try {
+      await deleteFile(pgFileId)
+      setPgFileId('')
+      if (pgLanguage === 'python') {
+        setPgFileName('solution.py')
+        setPgCode("print('File deleted. Write some code...')")
+      } else {
+        setPgFileName('Main.java')
+        setPgCode("public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"File deleted. Write some code...\");\n    }\n}")
+      }
+    } catch (err) {
+      setPgOutput('Failed to delete file: ' + err.message)
+    }
+  }
+
+  const handlePgSelectFile = (fileId) => {
+    if (fileId === 'new') {
+      setPgFileId('')
+      if (pgLanguage === 'python') {
+        setPgFileName('new_script.py')
+        setPgCode("# New script\nprint('Hello world!')")
+      } else {
+        setPgFileName('Main.java')
+        setPgCode("public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello world!\");\n    }\n}")
+      }
+      return
+    }
+
+    const selected = files.find((f) => f.id === fileId)
+    if (selected) {
+      setPgFileId(selected.id)
+      setPgFileName(selected.name)
+      setPgCode(selected.code)
+    }
+  }
+
+  const handlePgLanguageChange = (newLang) => {
+    setPgLanguage(newLang)
+    setPgFileId('')
+    setPgOutput('')
+
+    const filtered = files.filter((f) => {
+      if (newLang === 'python') {
+        return f.name.endsWith('.py') || !f.name.includes('.')
+      } else {
+        return f.name.endsWith('.java')
+      }
+    })
+
+    if (filtered.length > 0) {
+      const selected = filtered[0]
+      setPgFileId(selected.id)
+      setPgFileName(selected.name)
+      setPgCode(selected.code)
+    } else {
+      if (newLang === 'python') {
+        setPgFileName('solution.py')
+        setPgCode("print('Hello from scratchpad!')")
+      } else {
+        setPgFileName('Main.java')
+        setPgCode("public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello from scratchpad!\");\n    }\n}")
+      }
+    }
+  }
+
+  // Auto-sync files when opening playground or changing language
+  useEffect(() => {
+    if (files.length > 0 && !pgFileId && showPlayground) {
+      const filtered = files.filter((f) => {
+        if (pgLanguage === 'python') {
+          return f.name.endsWith('.py') || !f.name.includes('.')
+        } else {
+          return f.name.endsWith('.java')
+        }
+      })
+      if (filtered.length > 0) {
+        setPgFileId(filtered[0].id)
+        setPgFileName(filtered[0].name)
+        setPgCode(filtered[0].code)
+      }
+    }
+  }, [files, showPlayground, pgLanguage, pgFileId])
 
   // Sync active course on load
   useEffect(() => {
@@ -386,16 +606,28 @@ export default function Courses() {
                             </span>
                           </div>
                         </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setDeleteConfirmId(course.id)
-                          }}
-                          className="p-1.5 rounded-lg text-text-muted hover:text-semantic-red hover:bg-hover/60 transition-colors shrink-0 opacity-0 group-hover:opacity-100 focus:opacity-100"
-                          title="Delete course"
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setShareItemData({ type: 'course', data: course })
+                            }}
+                            className="p-1.5 rounded-lg text-text-muted hover:text-accent-light hover:bg-hover/60 transition-colors"
+                            title="Share course"
+                          >
+                            <Share2 className="h-3.5 w-3.5" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setDeleteConfirmId(course.id)
+                            }}
+                            className="p-1.5 rounded-lg text-text-muted hover:text-semantic-red hover:bg-hover/60 transition-colors"
+                            title="Delete course"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
                       </div>
 
                       {/* Mini playlist progress bar */}
@@ -430,12 +662,39 @@ export default function Courses() {
                     {listCollapsed ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
                     {listCollapsed ? 'Show List' : 'Theater Mode'}
                   </Button>
+                  
+                  <Button
+                    variant={showPlayground ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => {
+                      setShowPlayground(!showPlayground)
+                      if (!showPlayground) {
+                        setListCollapsed(true)
+                      }
+                    }}
+                    className="h-8 text-xs flex items-center gap-1.5 transition-all font-semibold"
+                  >
+                    <Terminal className="h-3.5 w-3.5" />
+                    {showPlayground ? 'Hide Playground' : 'Practice Code'}
+                  </Button>
+
                   <div className="h-4 w-[1px] bg-border-subtle" />
                   <span className="text-xs font-bold text-text-primary max-w-[200px] sm:max-w-xs truncate" title={activeCourse.name}>
                     {activeCourse.name}
                   </span>
                 </div>
+                
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShareItemData({ type: 'course', data: activeCourse })}
+                    className="h-7 text-[11px] flex items-center gap-1.5 bg-elevated border border-border hover:bg-hover font-semibold text-text-secondary hover:text-text-primary"
+                  >
+                    <Share2 className="h-3.5 w-3.5" />
+                    Share
+                  </Button>
+                  
                   <span className={cn(
                     "text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider",
                     activeCourse.isPlaylist ? "bg-accent/10 text-accent-light border border-accent/20" : "bg-semantic-purple-bg/30 text-semantic-purple border border-semantic-purple-bg"
@@ -446,10 +705,13 @@ export default function Courses() {
               </div>
 
               {/* Side-by-Side split pane grid */}
-              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
+              <div className={cn(
+                "grid gap-6 items-stretch",
+                showPlayground ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 xl:grid-cols-3"
+              )}>
                 
-                {/* 65% width Video + Tracker block */}
-                <div className="xl:col-span-2 space-y-4 flex flex-col">
+                {/* Video + Tracker block */}
+                <div className={cn("space-y-4 flex flex-col", showPlayground ? "" : "xl:col-span-2")}>
                   {/* Aspect-video Frame */}
                   <div className="w-full aspect-video rounded-2xl border border-border-subtle bg-black overflow-hidden shadow-2xl relative">
                     <iframe
@@ -513,47 +775,218 @@ export default function Courses() {
                   )}
                 </div>
 
-                {/* 35% width Notepad block */}
-                <div className="xl:col-span-1">
-                  <Card className="border border-border-subtle bg-card h-full flex flex-col overflow-hidden shadow-md">
-                    <CardHeader className="pb-3 border-b border-border-subtle/60 flex flex-row items-center justify-between shrink-0">
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-accent-light" />
-                        <CardTitle className="text-xs font-bold text-text-primary uppercase tracking-widest">
-                          Lecture Notes
-                        </CardTitle>
+                {/* Right block: Either Playground or Notepad */}
+                {showPlayground ? (
+                  <div className="flex flex-col space-y-4">
+                    <Card className="border border-border-subtle bg-card flex flex-col flex-1 overflow-hidden shadow-md">
+                      <CardHeader className="pb-3 border-b border-border-subtle/60 flex flex-row items-center justify-between shrink-0">
+                        <div className="flex items-center gap-2">
+                          <Terminal className="h-4 w-4 text-accent-light" />
+                          <CardTitle className="text-xs font-bold text-text-primary uppercase tracking-widest">
+                            Side Playground
+                          </CardTitle>
+                        </div>
+                        
+                        <div className="flex items-center gap-1.5">
+                          {/* Lang toggle */}
+                          <div className="flex bg-surface p-0.5 rounded-md border border-border-subtle shrink-0">
+                            <button
+                              onClick={() => handlePgLanguageChange('python')}
+                              className={cn(
+                                "px-2 py-0.5 rounded text-[10px] font-semibold transition-all",
+                                pgLanguage === 'python' ? "bg-accent text-white" : "text-text-secondary"
+                              )}
+                            >
+                              Python
+                            </button>
+                            <button
+                              onClick={() => handlePgLanguageChange('java')}
+                              className={cn(
+                                "px-2 py-0.5 rounded text-[10px] font-semibold transition-all",
+                                pgLanguage === 'java' ? "bg-accent text-white" : "text-text-secondary"
+                              )}
+                            >
+                              Java
+                            </button>
+                          </div>
+
+                          <Badge
+                            variant={pgLanguage === 'python' && pgLoadingRunner ? 'secondary' : 'success'}
+                            className="h-5 text-[8px] flex gap-1 items-center px-1"
+                          >
+                            {pgLanguage === 'python' ? (
+                              pgLoadingRunner ? (
+                                <>
+                                  <Loader2 className="h-2.5 w-2.5 animate-spin" /> Wasm Loading
+                                </>
+                              ) : (
+                                <>
+                                  <CheckCircle2 className="h-2.5 w-2.5 text-semantic-green" /> Wasm Active
+                                </>
+                              )
+                            ) : (
+                              <>
+                                <CheckCircle2 className="h-2.5 w-2.5 text-semantic-green" /> Cloud Compiler
+                              </>
+                            )}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+
+                      {/* Sub-header File operations bar */}
+                      <div className="flex items-center justify-between p-2.5 border-b border-border-subtle bg-surface/50 text-xs shrink-0 flex-wrap gap-2">
+                        {/* Selector for files */}
+                        <div className="flex items-center gap-2">
+                          <Select value={pgFileId || 'new'} onValueChange={handlePgSelectFile}>
+                            <SelectTrigger className="w-[120px] h-7 bg-card border border-border-subtle text-[10px]">
+                              <SelectValue placeholder="Files..." />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="new" className="text-accent-light font-medium flex items-center gap-1.5 text-[10px]">
+                                <Plus className="h-3 w-3 inline mr-1 text-[10px]" /> New Script
+                              </SelectItem>
+                              {files.filter(f => pgLanguage === 'python' ? (f.name.endsWith('.py') || !f.name.includes('.')) : f.name.endsWith('.java')).map((f) => (
+                                <SelectItem key={f.id} value={f.id} className="text-[10px]">
+                                  {f.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* File Name input and operations buttons */}
+                        <div className="flex items-center gap-1.5 flex-1 max-w-[150px]">
+                          <FileCode className="h-3.5 w-3.5 text-text-muted shrink-0" />
+                          <div className="relative flex items-center flex-1 group">
+                            <Input
+                              value={pgFileName}
+                              onChange={(e) => setPgFileName(e.target.value)}
+                              className="h-7 bg-card border border-border-subtle text-[10px] text-text-primary font-medium px-1.5 rounded transition-all pr-6 focus-visible:ring-1 focus-visible:ring-accent focus-visible:ring-offset-0"
+                              placeholder={pgLanguage === 'python' ? 'filename.py' : 'Main.java'}
+                            />
+                            <Pencil className="h-3 w-3 text-text-muted absolute right-2 opacity-50 group-hover:opacity-100 pointer-events-none" />
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handlePgSelectFile('new')} title="New file">
+                            <Plus className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={handlePgSave} disabled={pgSaving} title="Save script">
+                            {pgSaving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                          </Button>
+                          {pgFileId && (
+                            <Button variant="ghost" size="icon" className="h-7 w-7 text-text-muted hover:text-semantic-red" onClick={handlePgDelete} title="Delete script">
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <Button
-                        size="sm"
-                        onClick={handleSaveNotes}
-                        disabled={notesSaving || !isNotesDirty}
-                        className={cn(
-                          "h-7 text-xs flex items-center gap-1 px-2.5 transition-all",
-                          isNotesDirty ? "bg-accent hover:bg-accent-light text-white animate-pulse" : "bg-elevated border border-border"
-                        )}
-                      >
-                        {notesSaving ? (
-                          <Loader2 className="h-3 w-3 animate-spin" />
-                        ) : (
-                          <Save className="h-3.5 w-3.5" />
-                        )}
-                        {isNotesDirty ? 'Save Notes *' : 'Saved'}
-                      </Button>
-                    </CardHeader>
-                    <CardContent className="p-3 flex-1 flex flex-col min-h-[300px]">
-                      <textarea
-                        value={localNotes}
-                        onChange={(e) => {
-                          setLocalNotes(e.target.value)
-                          setIsNotesDirty(true)
-                        }}
-                        onBlur={handleSaveNotes}
-                        className="w-full flex-1 bg-base text-text-primary text-xs font-sans p-3.5 outline-none resize-none rounded-xl border border-border-subtle focus:border-accent/40 leading-relaxed transition-all shadow-inner"
-                        placeholder="📝 Type study notes, algorithms, SQL queries, or interview questions here. Auto-saves when clicking away."
-                      />
-                    </CardContent>
-                  </Card>
-                </div>
+                      <CardContent className="p-3 flex-1 flex flex-col min-h-[350px] space-y-3">
+                        <textarea
+                          value={pgCode}
+                          onChange={(e) => setPgCode(e.target.value)}
+                          className="w-full flex-1 bg-base text-text-primary text-xs font-mono p-3 outline-none resize-none rounded-xl border border-border-subtle focus:border-accent/40 leading-relaxed transition-all shadow-inner min-h-[180px]"
+                          style={{ tabSize: 4 }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Tab') {
+                              e.preventDefault()
+                              const start = e.target.selectionStart
+                              const end = e.target.selectionEnd
+                              const val = e.target.value
+                              setPgCode(val.substring(0, start) + '    ' + val.substring(end))
+                              setTimeout(() => {
+                                e.target.selectionStart = e.target.selectionEnd = start + 4
+                              }, 0)
+                            }
+                          }}
+                        />
+
+                        {/* Console Output */}
+                        <div className="border border-border-subtle bg-base rounded-xl overflow-hidden flex flex-col h-[130px]">
+                          <div className="flex items-center justify-between p-2 bg-surface border-b border-border-subtle/50 text-[10px] font-bold text-text-secondary shrink-0">
+                            <span>CONSOLE OUTPUT</span>
+                            <button onClick={() => setPgOutput('')} className="text-text-muted hover:text-text-primary">Clear</button>
+                          </div>
+                          <pre className="p-2.5 overflow-auto flex-1 font-mono text-[10px] text-semantic-green whitespace-pre-wrap">
+                            {pgOutput || `Output console is clear. Write and run ${pgLanguage} code.`}
+                          </pre>
+                        </div>
+                      </CardContent>
+
+                      <div className="p-2 bg-surface flex justify-between items-center border-t border-border-subtle shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            const element = document.createElement('a')
+                            const file = new Blob([pgCode], { type: 'text/plain' })
+                            element.href = URL.createObjectURL(file)
+                            element.download = pgFileName || (pgLanguage === 'python' ? 'solution.py' : 'Main.java')
+                            document.body.appendChild(element)
+                            element.click()
+                            document.body.removeChild(element)
+                          }}
+                          className="h-7 text-xs flex items-center gap-1 bg-elevated border border-border hover:bg-hover"
+                        >
+                          <Download className="h-3.5 w-3.5 text-text-muted" /> Download
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          onClick={handlePgRun}
+                          disabled={(pgLanguage === 'python' && pgLoadingRunner) || pgRunning}
+                          className="h-7 text-xs flex items-center gap-1 font-semibold"
+                        >
+                          {pgRunning ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Play className="h-3.5 w-3.5" />}
+                          Run Code
+                        </Button>
+                      </div>
+                    </Card>
+                  </div>
+                ) : (
+                  /* Notepad block */
+                  <div className="xl:col-span-1">
+                    <Card className="border border-border-subtle bg-card h-full flex flex-col overflow-hidden shadow-md">
+                      <CardHeader className="pb-3 border-b border-border-subtle/60 flex flex-row items-center justify-between shrink-0">
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="h-4 w-4 text-accent-light" />
+                          <CardTitle className="text-xs font-bold text-text-primary uppercase tracking-widest">
+                            Lecture Notes
+                          </CardTitle>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={handleSaveNotes}
+                          disabled={notesSaving || !isNotesDirty}
+                          className={cn(
+                            "h-7 text-xs flex items-center gap-1 px-2.5 transition-all",
+                            isNotesDirty ? "bg-accent hover:bg-accent-light text-white animate-pulse" : "bg-elevated border border-border"
+                          )}
+                        >
+                          {notesSaving ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Save className="h-3.5 w-3.5" />
+                          )}
+                          {isNotesDirty ? 'Save Notes *' : 'Saved'}
+                        </Button>
+                      </CardHeader>
+                      <CardContent className="p-3 flex-1 flex flex-col min-h-[300px]">
+                        <textarea
+                          value={localNotes}
+                          onChange={(e) => {
+                            setLocalNotes(e.target.value)
+                            setIsNotesDirty(true)
+                          }}
+                          onBlur={handleSaveNotes}
+                          className="w-full flex-1 bg-base text-text-primary text-xs font-sans p-3.5 outline-none resize-none rounded-xl border border-border-subtle focus:border-accent/40 leading-relaxed transition-all shadow-inner"
+                          placeholder="📝 Type study notes, algorithms, SQL queries, or interview questions here. Auto-saves when clicking away."
+                        />
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -640,6 +1073,18 @@ export default function Courses() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Dialog */}
+      {shareItemData && (
+        <ShareDialog
+          open={!!shareItemData}
+          onOpenChange={(val) => !val && setShareItemData(null)}
+          itemType={shareItemData.type}
+          itemData={shareItemData.data}
+          senderUid={user?.uid}
+          senderEmail={user?.email}
+        />
+      )}
     </div>
   )
 }

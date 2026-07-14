@@ -1,4 +1,4 @@
-import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut } from 'lucide-react'
+import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut, Share2 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
 import { useAuth } from '@/hooks/useAuth'
@@ -26,6 +26,9 @@ export default function TopBar({ title }) {
           </Link>
           <Link to="/bookmarks" className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors" title="Bookmarks">
             <Bookmark className="h-4.5 w-4.5" />
+          </Link>
+          <Link to="/shares" className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors" title="Shared Inbox">
+            <Share2 className="h-4.5 w-4.5" />
           </Link>
           <button
             onClick={signOut}

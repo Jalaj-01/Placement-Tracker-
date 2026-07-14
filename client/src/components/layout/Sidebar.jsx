@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import {
   LayoutDashboard, Code2, BookOpen, Briefcase, Sparkles,
   ChevronLeft, ChevronRight, LogOut, Terminal, FolderOpen, Youtube,
-  Bookmark,
+  Bookmark, Share2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useAppStore } from '@/store/useAppStore'
@@ -18,6 +18,7 @@ const navItems = [
   { to: '/library', icon: FolderOpen, label: 'Library' },
   { to: '/courses', icon: Youtube, label: 'Course Vault' },
   { to: '/bookmarks', icon: Bookmark, label: 'Bookmarks' },
+  { to: '/shares', icon: Share2, label: 'Shares' },
 ]
 
 export default function Sidebar({ user, onSignOut }) {

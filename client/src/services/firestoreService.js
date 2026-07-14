@@ -1,6 +1,7 @@
 import {
   collection, doc, getDoc, getDocs, setDoc, addDoc, updateDoc, deleteDoc,
   query, orderBy, onSnapshot, serverTimestamp, Timestamp, writeBatch, where,
+  collectionGroup,
 } from 'firebase/firestore'
 import { db } from '@/config/firebase'
 import { topicSeeds } from '@/utils/topicSeeds'
@@ -415,3 +416,47 @@ export async function updateBookmarkDoc(uid, bookmarkId, data) {
 export async function deleteBookmarkDoc(uid, bookmarkId) {
   await deleteDoc(doc(db, 'users', uid, 'bookmarks', bookmarkId))
 }
+
+// ─── Sharing ───────────────────────────────────────────────
+export async function findUserByEmail(email) {
+  const q = query(
+    collectionGroup(db, 'profile'),
+    where('email', '==', email.toLowerCase().trim())
+  )
+  const snap = await getDocs(q)
+  if (snap.empty) {
+    throw new Error('User not found with this email')
+  }
+  const profileDoc = snap.docs[0]
+  // profileDoc is at users/{uid}/profile/main, so its parent of parent is users/{uid}
+  const uid = profileDoc.ref.parent.parent.id
+  return { uid, email: profileDoc.data().email, displayName: profileDoc.data().displayName }
+}
+
+export async function shareItem(senderUid, senderEmail, receiverEmail, itemType, itemData) {
+  const receiver = await findUserByEmail(receiverEmail)
+  if (receiver.uid === senderUid) {
+    throw new Error('You cannot share items with yourself')
+  }
+
+  const ref = collection(db, 'users', receiver.uid, 'shares')
+  await addDoc(ref, {
+    senderEmail,
+    senderUid,
+    itemType, // 'course' | 'bookmark' | 'problem' | 'library'
+    itemData,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export function subscribeShares(uid, callback) {
+  const q = query(userPath(uid, 'shares'), orderBy('createdAt', 'desc'))
+  return onSnapshot(q, (snap) => {
+    callback(snap.docs.map((d) => ({ id: d.id, ...d.data() })))
+  })
+}
+
+export async function deleteShare(uid, shareId) {
+  await deleteDoc(doc(db, 'users', uid, 'shares', shareId))
+}
+

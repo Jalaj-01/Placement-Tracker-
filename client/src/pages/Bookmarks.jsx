@@ -2,8 +2,10 @@ import { useState } from 'react'
 import {
   Bookmark, Search, Plus, Trash2, Edit2, ExternalLink, Loader2, Tag,
   AlertCircle, Globe, CheckSquare, FileText, Youtube, Code2, Sparkles,
-  Link as LinkIcon
+  Link as LinkIcon, Share2
 } from 'lucide-react'
+import ShareDialog from '@/components/share/ShareDialog'
+
 import { useAuth } from '@/hooks/useAuth'
 import { useBookmarks } from '@/hooks/useBookmarks'
 import { Card, CardContent } from '@/components/ui/card'
@@ -34,6 +36,8 @@ export default function Bookmarks() {
   const [isAddOpen, setIsAddOpen] = useState(false)
   const [editingBookmark, setEditingBookmark] = useState(null)
   const [deleteConfirmId, setDeleteConfirmId] = useState(null)
+  const [shareItemData, setShareItemData] = useState(null)
+
 
   // Form states
   const [formTitle, setFormTitle] = useState('')
@@ -284,6 +288,13 @@ export default function Bookmarks() {
                       {/* Utility Action Buttons */}
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button
+                          onClick={() => setShareItemData({ type: 'bookmark', data: b })}
+                          className="p-1 rounded hover:bg-hover text-text-secondary hover:text-accent-light transition-colors"
+                          title="Share Bookmark"
+                        >
+                          <Share2 className="h-3.5 w-3.5" />
+                        </button>
+                        <button
                           onClick={() => handleOpenEdit(b)}
                           className="p-1 rounded hover:bg-hover text-text-secondary hover:text-text-primary transition-colors"
                           title="Edit Bookmark"
@@ -514,6 +525,18 @@ export default function Bookmarks() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Dialog */}
+      {shareItemData && (
+        <ShareDialog
+          open={!!shareItemData}
+          onOpenChange={(val) => !val && setShareItemData(null)}
+          itemType={shareItemData.type}
+          itemData={shareItemData.data}
+          senderUid={user?.uid}
+          senderEmail={user?.email}
+        />
+      )}
     </div>
   )
 }

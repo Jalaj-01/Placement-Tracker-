@@ -14,6 +14,7 @@ import Playground from '@/pages/Playground'
 import Library from '@/pages/Library'
 import Courses from '@/pages/Courses'
 import Bookmarks from '@/pages/Bookmarks'
+import Shares from '@/pages/Shares'
 import Landing from '@/pages/Landing'
 import { Loader2 } from 'lucide-react'
 
@@ -164,6 +165,15 @@ function AppContent() {
             <PageWrapper>
               <TopBar title="QA Bookmarks" />
               <Bookmarks />
+            </PageWrapper>
+          }
+        />
+        <Route
+          path="/shares"
+          element={
+            <PageWrapper>
+              <TopBar title="Shared Inbox" />
+              <Shares />
             </PageWrapper>
           }
         />

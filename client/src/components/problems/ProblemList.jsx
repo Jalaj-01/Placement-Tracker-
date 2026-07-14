@@ -6,7 +6,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import ProblemCard from './ProblemCard'
 import { Code2 } from 'lucide-react'
 
-export default function ProblemList({ problems, loading, onUpdate, onDelete }) {
+export default function ProblemList({ problems, loading, onUpdate, onDelete, onShare }) {
   const [tagFilter, setTagFilter] = useState('all')
   const [platformFilter, setPlatformFilter] = useState('all')
   const [confidenceFilter, setConfidenceFilter] = useState('all')
@@ -85,7 +85,7 @@ export default function ProblemList({ problems, loading, onUpdate, onDelete }) {
 
       <div className="space-y-3">
         {filtered.map((p) => (
-          <ProblemCard key={p.id} problem={p} onUpdate={onUpdate} onDelete={onDelete} />
+          <ProblemCard key={p.id} problem={p} onUpdate={onUpdate} onDelete={onDelete} onShare={onShare} />
         ))}
       </div>
     </div>

@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { FolderOpen, FileUp, FileText, ImageIcon, Search, Trash2, ExternalLink, Loader2, ArrowRight } from 'lucide-react'
+import { FolderOpen, FileUp, FileText, ImageIcon, Search, Trash2, ExternalLink, Loader2, ArrowRight, Share2 } from 'lucide-react'
 import { useAuth } from '@/hooks/useAuth'
 import { useLibrary } from '@/hooks/useLibrary'
+import ShareDialog from '@/components/share/ShareDialog'
+
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,6 +12,7 @@ import { storage } from '@/config/firebase'
 import { ref as storageRef, uploadBytesResumable, getDownloadURL } from 'firebase/storage'
 import { cn } from '@/lib/utils'
 import { openFileInNewTab } from '@/utils/fileHelpers'
+import { apiCall } from '@/services/apiClient'
 
 export default function Library() {
   const { user } = useAuth()
@@ -23,6 +26,8 @@ export default function Library() {
   
   // Dialog state
   const [deleteConfirmDoc, setDeleteConfirmDoc] = useState(null)
+  const [shareItemData, setShareItemData] = useState(null)
+
 
   const readFileAsBase64 = (file) => {
     return new Promise((resolve, reject) => {
@@ -49,33 +54,25 @@ export default function Library() {
           await addDoc(file.name, base64Url, file.type, file.size)
           setUploadProgress(100)
         } else {
-          // Fallback to Firebase Storage bucket if enabled
-          const path = `users/${user?.uid || 'anonymous'}/library/${Date.now()}_${file.name}`
-          const sRef = storageRef(storage, path)
-          const uploadTask = uploadBytesResumable(sRef, file)
+          // Fallback to local server upload to support files of any size without Firebase Storage configuration
+          setUploadProgress(40)
+          const base64Url = await readFileAsBase64(file)
+          setUploadProgress(70)
           
-          await new Promise((resolve, reject) => {
-            uploadTask.on(
-              'state_changed',
-              (snapshot) => {
-                const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100
-                setUploadProgress(Math.round(progress))
-              },
-              (err) => {
-                reject(err)
-              },
-              () => {
-                resolve()
-              }
-            )
+          const uploadRes = await apiCall('/api/library/upload', {
+            method: 'POST',
+            body: {
+              name: file.name,
+              base64Data: base64Url
+            }
           })
-
-          const downloadUrl = await getDownloadURL(uploadTask.snapshot.ref)
-          await addDoc(file.name, downloadUrl, file.type, file.size)
+          
+          await addDoc(file.name, uploadRes.url, file.type, file.size)
+          setUploadProgress(100)
         }
       }
     } catch (err) {
-      setError('Upload failed: ' + err.message + ' (For files > 1MB, verify Firebase Storage is activated in console)')
+      setError('Upload failed: ' + err.message)
     } finally {
       setUploading(false)
       setUploadProgress(0)
@@ -248,6 +245,14 @@ export default function Library() {
                       <Button
                         variant="ghost"
                         size="icon"
+                        onClick={() => setShareItemData({ type: 'library', data: docItem })}
+                        className="h-7 w-7 text-text-muted hover:text-accent-light hover:bg-hover"
+                      >
+                        <Share2 className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
                         onClick={() => setDeleteConfirmDoc(docItem)}
                         className="h-7 w-7 text-text-muted hover:text-semantic-red hover:bg-hover"
                       >
@@ -290,6 +295,18 @@ export default function Library() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Share Dialog */}
+      {shareItemData && (
+        <ShareDialog
+          open={!!shareItemData}
+          onOpenChange={(val) => !val && setShareItemData(null)}
+          itemType={shareItemData.type}
+          itemData={shareItemData.data}
+          senderUid={user?.uid}
+          senderEmail={user?.email}
+        />
+      )}
     </div>
   )
 }

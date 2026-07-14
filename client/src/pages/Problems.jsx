@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Code2 } from 'lucide-react'
+import ShareDialog from '@/components/share/ShareDialog'
 import { useAuth } from '@/hooks/useAuth'
 import { useProblems } from '@/hooks/useProblems'
 import QuickLogInput from '@/components/problems/QuickLogInput'
@@ -11,6 +12,7 @@ export default function Problems() {
   const { problems, loading, addProblem, updateProblem, deleteProblem, importCompanyKit } = useProblems(user?.uid)
   
   const [typeFilter, setTypeFilter] = useState('DSA') // 'DSA' or 'Aptitude'
+  const [shareItemData, setShareItemData] = useState(null)
 
   const handleAdd = async (data) => {
     await addProblem(data)
@@ -85,8 +87,21 @@ export default function Problems() {
           loading={loading}
           onUpdate={handleUpdate}
           onDelete={handleDelete}
+          onShare={(p) => setShareItemData({ type: 'problem', data: p })}
         />
       </div>
+
+      {/* Share Dialog */}
+      {shareItemData && (
+        <ShareDialog
+          open={!!shareItemData}
+          onOpenChange={(val) => !val && setShareItemData(null)}
+          itemType={shareItemData.type}
+          itemData={shareItemData.data}
+          senderUid={user?.uid}
+          senderEmail={user?.email}
+        />
+      )}
     </div>
   )
 }

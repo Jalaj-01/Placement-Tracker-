@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { ExternalLink, Trash2, Paperclip, Play, Save, Loader2 } from 'lucide-react'
+import { ExternalLink, Trash2, Paperclip, Play, Save, Loader2, Share2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,7 +26,7 @@ function getFaviconUrl(url) {
   }
 }
 
-export default function ProblemCard({ problem, onUpdate, onDelete }) {
+export default function ProblemCard({ problem, onUpdate, onDelete, onShare }) {
   const [confirmDelete, setConfirmDelete] = useState(false)
   const due = isDue(problem.nextReviewDate)
   const lastReviewed = daysAgo(problem.lastReviewedDate)
@@ -128,6 +128,9 @@ export default function ProblemCard({ problem, onUpdate, onDelete }) {
                   )}
                 </Button>
               </a>
+              <Button variant="ghost" size="icon" onClick={() => onShare && onShare(problem)} title="Share problem">
+                <Share2 className="h-4 w-4 text-text-muted hover:text-accent-light" />
+              </Button>
               {!confirmDelete ? (
                 <Button variant="ghost" size="icon" onClick={() => setConfirmDelete(true)}>
                   <Trash2 className="h-4 w-4 text-text-muted" />
