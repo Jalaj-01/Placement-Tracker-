@@ -1,9 +1,11 @@
-import { WifiOff, FolderOpen, Youtube, Bookmark } from 'lucide-react'
+import { WifiOff, FolderOpen, Youtube, Bookmark, LogOut } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useAppStore } from '@/store/useAppStore'
+import { useAuth } from '@/hooks/useAuth'
 
 export default function TopBar({ title }) {
   const { isOffline } = useAppStore()
+  const { signOut } = useAuth()
 
   return (
     <header className="lg:hidden sticky top-0 z-30 border-b border-border-subtle bg-base/95 backdrop-blur-md px-4 py-3">
@@ -25,6 +27,13 @@ export default function TopBar({ title }) {
           <Link to="/bookmarks" className="p-1.5 rounded-lg text-text-muted hover:text-text-primary hover:bg-hover transition-colors" title="Bookmarks">
             <Bookmark className="h-4.5 w-4.5" />
           </Link>
+          <button
+            onClick={signOut}
+            className="p-1.5 rounded-lg text-text-muted hover:text-semantic-red hover:bg-hover transition-colors"
+            title="Sign out"
+          >
+            <LogOut className="h-4.5 w-4.5" />
+          </button>
         </div>
       </div>
     </header>
