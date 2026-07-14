@@ -102,6 +102,22 @@ export async function deleteCategory(uid, categoryName) {
   await recordActivity(uid)
 }
 
+export async function updateCategoryOrder(uid, subject, order) {
+  if (subject === 'customSubjects') {
+    await updateDoc(doc(db, 'users', uid, 'profile', 'main'), {
+      customSubjects: order
+    })
+  } else {
+    const currentOrders = (await getDoc(doc(db, 'users', uid, 'profile', 'main'))).data()?.categoryOrders || {}
+    await updateDoc(doc(db, 'users', uid, 'profile', 'main'), {
+      categoryOrders: {
+        ...currentOrders,
+        [subject]: order
+      }
+    })
+  }
+}
+
 
 
 export async function addTopic(uid, data) {
@@ -458,5 +474,119 @@ export function subscribeShares(uid, callback) {
 
 export async function deleteShare(uid, shareId) {
   await deleteDoc(doc(db, 'users', uid, 'shares', shareId))
+}
+
+export async function shareEntirePreparation(senderUid, senderEmail, receiverEmail) {
+  const receiver = await findUserByEmail(receiverEmail)
+  if (receiver.uid === senderUid) {
+    throw new Error('You cannot share items with yourself')
+  }
+
+  // Fetch all user data
+  const [topicsSnap, coursesSnap, bookmarksSnap, librarySnap, problemsSnap, playgroundSnap] = await Promise.all([
+    getDocs(userPath(senderUid, 'topics')),
+    getDocs(userPath(senderUid, 'courses')),
+    getDocs(userPath(senderUid, 'bookmarks')),
+    getDocs(userPath(senderUid, 'library')),
+    getDocs(userPath(senderUid, 'problems')),
+    getDocs(userPath(senderUid, 'playground')),
+  ])
+
+  const preparationData = {
+    topics: topicsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    courses: coursesSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    bookmarks: bookmarksSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    library: librarySnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    problems: problemsSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+    playground: playgroundSnap.docs.map(d => ({ id: d.id, ...d.data() })),
+  }
+
+  const ref = collection(db, 'users', receiver.uid, 'shares')
+  await addDoc(ref, {
+    senderEmail,
+    senderUid,
+    itemType: 'preparation',
+    itemData: preparationData,
+    createdAt: serverTimestamp(),
+  })
+}
+
+export async function importEntirePreparation(uid, preparationData) {
+  const batch = writeBatch(db)
+  const now = serverTimestamp()
+
+  // Import topics
+  preparationData.topics.forEach(topic => {
+    const ref = doc(userPath(uid, 'topics'))
+    const { id, ...data } = topic
+    batch.set(ref, {
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    })
+  })
+
+  // Import courses
+  preparationData.courses.forEach(course => {
+    const ref = doc(userPath(uid, 'courses'))
+    const { id, ...data } = course
+    batch.set(ref, {
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    })
+  })
+
+  // Import bookmarks
+  preparationData.bookmarks.forEach(bookmark => {
+    const ref = doc(userPath(uid, 'bookmarks'))
+    const { id, ...data } = bookmark
+    batch.set(ref, {
+      ...data,
+      createdAt: now,
+      updatedAt: now,
+    })
+  })
+
+  // Import library
+  preparationData.library.forEach(doc => {
+    const ref = doc(userPath(uid, 'library'))
+    const { id, ...data } = doc
+    batch.set(ref, {
+      ...data,
+      createdAt: now,
+    })
+  })
+
+  // Import problems (reset SM-2 values for fresh start)
+  preparationData.problems.forEach(problem => {
+    const ref = doc(userPath(uid, 'problems'))
+    const { id, easiness, repetition, interval, statusHistory, lastReviewedDate, nextReviewDate, ...data } = problem
+    const nextReview = new Date()
+    nextReview.setDate(nextReview.getDate() + 1)
+    batch.set(ref, {
+      ...data,
+      easiness: 2.5,
+      repetition: 0,
+      interval: 1,
+      statusHistory: [{ status: data.confidenceStatus || 'Red', timestamp: Timestamp.now() }],
+      lastReviewedDate: Timestamp.now(),
+      nextReviewDate: Timestamp.fromDate(nextReview),
+      createdAt: now,
+    })
+  })
+
+  // Import playground files
+  preparationData.playground.forEach(file => {
+    const ref = doc(userPath(uid, 'playground'))
+    const { id, ...data } = file
+    batch.set(ref, {
+      ...data,
+      updatedAt: now,
+    })
+  })
+
+  await batch.commit()
+  await recordActivity(uid)
 }
 

@@ -170,6 +170,9 @@ export default function Topics() {
   const [newSectionName, setNewSectionName] = useState('')
   const [sectionSubject, setSectionSubject] = useState('OS')
   const [deleteConfirmSection, setDeleteConfirmSection] = useState(null)
+  const [showAddSubject, setShowAddSubject] = useState(false)
+  const [newSubjectName, setNewSubjectName] = useState('')
+  const [customSubjects, setCustomSubjects] = useState([])
 
   const [activeTab, setActiveTab] = useState('dsa')
 
@@ -179,10 +182,19 @@ export default function Topics() {
       setSectionSubject('OS')
     } else if (activeTab === 'aptitude') {
       setSectionSubject('Aptitude-Quant')
+    } else if (activeTab === 'custom') {
+      setSectionSubject(customSubjects.length > 0 ? customSubjects[0] : '')
     } else {
       setSectionSubject('DSA')
     }
-  }, [activeTab])
+  }, [activeTab, customSubjects])
+
+  // Load custom subjects from profile
+  useEffect(() => {
+    if (profile?.customSubjects) {
+      setCustomSubjects(profile.customSubjects)
+    }
+  }, [profile])
 
   const handleAddSection = async () => {
     if (!newSectionName.trim()) return
@@ -196,6 +208,15 @@ export default function Topics() {
     })
     setNewSectionName('')
     setShowAddSection(false)
+  }
+
+  const handleAddSubject = async () => {
+    if (!newSubjectName.trim()) return
+    const updatedCustomSubjects = [...customSubjects, newSubjectName.trim()]
+    await updateCategoryOrder('customSubjects', updatedCustomSubjects)
+    setCustomSubjects(updatedCustomSubjects)
+    setNewSubjectName('')
+    setShowAddSubject(false)
   }
 
   const [search, setSearch] = useState('')
@@ -278,7 +299,37 @@ export default function Topics() {
             if (!groups[sub][t.category]) groups[sub][t.category] = []
             groups[sub][t.category].push(t)
           })
-          
+
+          const order = localOrders[sub] || []
+          const sortedCategories = {}
+          const sortedKeys = Object.keys(groups[sub]).sort((a, b) => {
+            const idxA = order.indexOf(a)
+            const idxB = order.indexOf(b)
+            if (idxA === -1 && idxB === -1) return 0
+            if (idxA === -1) return 1
+            if (idxB === -1) return -1
+            return idxA - idxB
+          })
+          sortedKeys.forEach((k) => {
+            sortedCategories[k] = groups[sub][k]
+          })
+          groups[sub] = sortedCategories
+        }
+      })
+      return groups
+    }
+
+    if (activeTab === 'custom') {
+      const groups = {}
+      customSubjects.forEach((sub) => {
+        const subTopics = topics.filter((t) => t.subject === sub)
+        if (subTopics.length > 0) {
+          groups[sub] = {}
+          subTopics.forEach((t) => {
+            if (!groups[sub][t.category]) groups[sub][t.category] = []
+            groups[sub][t.category].push(t)
+          })
+
           const order = localOrders[sub] || []
           const sortedCategories = {}
           const sortedKeys = Object.keys(groups[sub]).sort((a, b) => {
@@ -299,15 +350,16 @@ export default function Topics() {
     }
 
     return {}
-  }, [topics, activeTab, loading, localOrders])
+  }, [topics, activeTab, loading, localOrders, customSubjects])
 
   // Overall calculations for progress meters
   const progressStats = useMemo(() => {
-    if (loading || !topics.length) return { dsa: 0, cs: 0, apt: 0 }
+    if (loading || !topics.length) return { dsa: 0, cs: 0, apt: 0, custom: 0 }
 
     const dsa = topics.filter((t) => t.subject === 'DSA')
     const cs = topics.filter((t) => ['OS', 'DBMS', 'CN', 'OOPS'].includes(t.subject))
     const apt = topics.filter((t) => t.subject.startsWith('Aptitude-'))
+    const custom = topics.filter((t) => customSubjects.includes(t.subject))
 
     const getPct = (list) => {
       if (!list.length) return 0
@@ -319,8 +371,9 @@ export default function Topics() {
       dsa: getPct(dsa),
       cs: getPct(cs),
       apt: getPct(apt),
+      custom: getPct(custom),
     }
-  }, [topics, loading])
+  }, [topics, loading, customSubjects])
 
   const handleUpdate = async (topicId, data) => {
     await updateTopic(topicId, data)
@@ -351,7 +404,7 @@ export default function Topics() {
         </div>
 
         {/* Global Progress Metrics */}
-        <div className="grid grid-cols-3 gap-4 w-full md:w-auto md:min-w-[400px] bg-card p-3 rounded-card border border-border-subtle">
+        <div className="grid grid-cols-4 gap-4 w-full md:w-auto md:min-w-[400px] bg-card p-3 rounded-card border border-border-subtle">
           <div className="text-center">
             <p className="text-micro text-text-muted">DSA</p>
             <p className="text-card-title font-bold text-accent-light">{progressStats.dsa}%</p>
@@ -364,15 +417,20 @@ export default function Topics() {
             <p className="text-micro text-text-muted">Aptitude</p>
             <p className="text-card-title font-bold text-semantic-green">{progressStats.apt}%</p>
           </div>
+          <div className="text-center border-l border-border-subtle">
+            <p className="text-micro text-text-muted">Custom</p>
+            <p className="text-card-title font-bold text-semantic-orange">{progressStats.custom}%</p>
+          </div>
         </div>
       </div>
 
       {/* Tabs list */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-6 bg-surface p-1 border border-border-subtle">
+        <TabsList className="grid w-full grid-cols-4 mb-6 bg-surface p-1 border border-border-subtle">
           <TabsTrigger value="dsa">DSA</TabsTrigger>
           <TabsTrigger value="cs-theory">CS Theory</TabsTrigger>
           <TabsTrigger value="aptitude">Aptitude</TabsTrigger>
+          <TabsTrigger value="custom">Custom</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -386,8 +444,8 @@ export default function Topics() {
 
       {/* Add Custom Section / Category */}
       <div className="flex flex-col gap-3">
-        {!showAddSection ? (
-          <div className="flex justify-end">
+        <div className="flex justify-between items-center">
+          {!showAddSection ? (
             <Button
               size="sm"
               onClick={() => setShowAddSection(true)}
@@ -396,8 +454,21 @@ export default function Topics() {
             >
               <Plus className="h-4 w-4 text-accent-light" /> Add Section
             </Button>
-          </div>
-        ) : (
+          ) : null}
+
+          {activeTab === 'custom' && !showAddSubject && (
+            <Button
+              size="sm"
+              onClick={() => setShowAddSubject(true)}
+              className="flex items-center gap-1.5 text-xs py-1.5 h-auto bg-elevated border border-border text-text-primary hover:bg-hover"
+              variant="outline"
+            >
+              <Plus className="h-4 w-4 text-accent-light" /> Add Subject
+            </Button>
+          )}
+        </div>
+
+        {showAddSection ? (
           <div className="w-full bg-card p-4 rounded-card border border-border-subtle space-y-3 animate-fade-in">
             <h3 className="text-body font-semibold text-text-primary">Create New Section / Category</h3>
             <div className="flex flex-col sm:flex-row gap-3">
@@ -432,6 +503,22 @@ export default function Topics() {
                   <option value="Aptitude-Verbal">Aptitude-Verbal</option>
                 </select>
               )}
+
+              {activeTab === 'custom' && (
+                <select
+                  value={sectionSubject}
+                  onChange={(e) => setSectionSubject(e.target.value)}
+                  className="bg-surface border border-border-subtle rounded-md text-xs px-3 py-2 outline-none text-text-primary shrink-0"
+                >
+                  {customSubjects.length > 0 ? (
+                    customSubjects.map((sub) => (
+                      <option key={sub} value={sub}>{sub}</option>
+                    ))
+                  ) : (
+                    <option value="">No custom subjects</option>
+                  )}
+                </select>
+              )}
             </div>
 
             <div className="flex justify-end gap-2 text-xs">
@@ -440,6 +527,29 @@ export default function Topics() {
               </Button>
               <Button size="sm" onClick={handleAddSection} disabled={!newSectionName.trim()}>
                 Create Section
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {showAddSubject && (
+          <div className="w-full bg-card p-4 rounded-card border border-border-subtle space-y-3 animate-fade-in">
+            <h3 className="text-body font-semibold text-text-primary">Create New Subject</h3>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Input
+                placeholder="Subject Name (e.g. Mechanical Engineering, Civil Engineering)"
+                value={newSubjectName}
+                onChange={(e) => setNewSubjectName(e.target.value)}
+                className="flex-1 text-xs"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 text-xs">
+              <Button size="sm" variant="ghost" onClick={() => { setShowAddSubject(false); setNewSubjectName(''); }}>
+                Cancel
+              </Button>
+              <Button size="sm" onClick={handleAddSubject} disabled={!newSubjectName.trim()}>
+                Create Subject
               </Button>
             </div>
           </div>
@@ -551,6 +661,55 @@ export default function Topics() {
                   <h2 className="text-section font-semibold text-text-primary mb-2">
                     {SUBJECT_LABELS[subject] || subject}
                   </h2>
+                  <div className="space-y-3">
+                    {Object.entries(categories).map(([category, list]) => {
+                      const filteredList = list.filter(filterTopic)
+                      if (filteredList.length === 0 && search) return null
+                      return (
+                        <div
+                          key={category}
+                          data-category={category}
+                          data-subject={subject}
+                          draggable={canDrag === category}
+                          onDragStart={(e) => handleDragStart(e, category, subject)}
+                          onDragOver={(e) => handleDragOver(e, category, subject)}
+                          onDragEnd={handleDragEnd}
+                          onTouchMove={(e) => handleTouchMove(e, subject)}
+                          onTouchEnd={handleTouchEnd}
+                          className={cn(
+                            "transition-all duration-200",
+                            draggedCategory === category && draggedSubject === subject && "opacity-45 scale-[0.98] border border-dashed border-accent-light rounded-card"
+                          )}
+                        >
+                          <TopicChecklist
+                            title={category}
+                            topics={filteredList}
+                            onUpdate={handleUpdate}
+                            onAdd={(name) => handleAddCustom(subject, category, name)}
+                            onDelete={deleteTopic}
+                            onDeleteCategory={setDeleteConfirmSection}
+                            onDragHandleMouseDown={() => setCanDrag(category)}
+                            onDragHandleMouseUp={() => setCanDrag(null)}
+                            onDragHandleTouchStart={() => handleTouchStart(category, subject)}
+                            onDragHandleTouchEnd={handleTouchEnd}
+                          />
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })
+          )}
+
+          {activeTab === 'custom' && (
+            Object.entries(groupedData).map(([subject, categories]) => {
+              const matchesAny = Object.values(categories).some(list => list.some(filterTopic))
+              if (!matchesAny && search) return null
+
+              return (
+                <div key={subject} className="space-y-4 border-l-2 border-semantic-orange-bg pl-4 py-1">
+                  <h2 className="text-section font-semibold text-text-primary mb-2">{subject}</h2>
                   <div className="space-y-3">
                     {Object.entries(categories).map(([category, list]) => {
                       const filteredList = list.filter(filterTopic)
