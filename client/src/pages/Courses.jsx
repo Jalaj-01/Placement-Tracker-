@@ -535,19 +535,19 @@ export default function Courses() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Premium Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border-subtle/50 pb-5">
-        <div className="flex items-center gap-3.5">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-semantic-red/10 border border-semantic-red/20 shadow-inner">
-            <Youtube className="h-6 w-6 text-semantic-red animate-pulse-slow" />
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 border-b border-border-subtle/50 pb-4 sm:pb-5">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-semantic-red/10 border border-semantic-red/20 shadow-inner shrink-0">
+            <Youtube className="h-5 w-5 sm:h-6 sm:w-6 text-semantic-red animate-pulse-slow" />
           </div>
-          <div>
-            <h1 className="text-page font-bold text-text-primary tracking-tight">Course Vault</h1>
-            <p className="text-secondary text-text-secondary text-xs mt-0.5">Study YouTube lecture courses in an ad-free, distraction-free environment</p>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-page font-bold text-text-primary tracking-tight">Course Vault</h1>
+            <p className="text-secondary text-text-secondary text-[10px] sm:text-xs mt-0.5 truncate">Study YouTube lecture courses in an ad-free, distraction-free environment</p>
           </div>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 hover:scale-[1.02] active:scale-[0.98] transition-all">
+        <Button onClick={() => setShowAdd(true)} className="flex items-center gap-2 text-xs font-semibold px-4 py-2 hover:scale-[1.02] active:scale-[0.98] transition-all w-full sm:w-auto justify-center">
           <Plus className="h-4 w-4" /> Add Course
         </Button>
       </div>
@@ -570,12 +570,12 @@ export default function Courses() {
           </Button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6 items-start">
           {/* Left Column: Course Selector Playlist Cards */}
           {!listCollapsed && (
-            <div className="lg:col-span-1 space-y-3.5 animate-fade-in">
+            <div className="lg:col-span-1 space-y-3 sm:space-y-3.5 animate-fade-in">
               <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest pl-1 block">Your Playlists</span>
-              <div className="space-y-2.5 max-h-[600px] overflow-y-auto pr-1.5 scrollbar-thin">
+              <div className="flex lg:flex-col gap-2.5 overflow-x-auto lg:overflow-x-visible lg:overflow-y-auto lg:max-h-[600px] pb-2 lg:pb-0 pr-0 lg:pr-1.5 scrollbar-thin snap-x lg:snap-none">
                 {courses.map((course) => {
                   const isActive = activeCourse?.id === course.id
                   const overallPercent = course.progress?.percent || 0
@@ -584,7 +584,8 @@ export default function Courses() {
                       key={course.id}
                       onClick={() => handleSelectCourse(course)}
                       className={cn(
-                        "group flex flex-col justify-between p-3.5 rounded-xl border cursor-pointer relative transition-all duration-300 overflow-hidden",
+                        "group flex flex-col justify-between p-3 sm:p-3.5 rounded-xl border cursor-pointer relative transition-all duration-300 overflow-hidden",
+                        "min-w-[200px] lg:min-w-0 snap-start",
                         isActive
                           ? "bg-accent/8 border-accent text-accent-light shadow-md shadow-accent/5"
                           : "bg-card border-border-subtle hover:border-border-hover text-text-secondary hover:text-text-primary hover:bg-hover/30"
@@ -606,7 +607,7 @@ export default function Courses() {
                             </span>
                           </div>
                         </div>
-                        <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                        <div className="flex items-center gap-1 shrink-0 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 lg:focus-within:opacity-100">
                           <button
                             onClick={(e) => {
                               e.stopPropagation()
@@ -648,19 +649,19 @@ export default function Courses() {
 
           {/* Right Column: Premium Split-Pane Learning console */}
           {activeCourse && (
-            <div className={cn("space-y-4", listCollapsed ? "lg:col-span-4" : "lg:col-span-3")}>
+            <div className={cn("space-y-3 sm:space-y-4", listCollapsed ? "lg:col-span-4" : "lg:col-span-3")}>
               
               {/* Workspace Header Toolbar */}
-              <div className="flex items-center justify-between flex-wrap gap-3 bg-surface p-2 rounded-xl border border-border-subtle/70">
-                <div className="flex items-center gap-3">
+              <div className="flex items-center justify-between flex-wrap gap-2 sm:gap-3 bg-surface p-1.5 sm:p-2 rounded-xl border border-border-subtle/70">
+                <div className="flex items-center gap-1.5 sm:gap-3 flex-wrap">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setListCollapsed(!listCollapsed)}
-                    className="h-8 text-xs flex items-center gap-1.5 bg-elevated border border-border hover:bg-hover text-text-primary transition-all font-semibold"
+                    className="h-7 sm:h-8 text-[10px] sm:text-xs flex items-center gap-1 sm:gap-1.5 bg-elevated border border-border hover:bg-hover text-text-primary transition-all font-semibold px-2 sm:px-3"
                   >
                     {listCollapsed ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
-                    {listCollapsed ? 'Show List' : 'Theater Mode'}
+                    <span className="hidden sm:inline">{listCollapsed ? 'Show List' : 'Theater Mode'}</span>
                   </Button>
                   
                   <Button
@@ -672,31 +673,31 @@ export default function Courses() {
                         setListCollapsed(true)
                       }
                     }}
-                    className="h-8 text-xs flex items-center gap-1.5 transition-all font-semibold"
+                    className="h-7 sm:h-8 text-[10px] sm:text-xs flex items-center gap-1 sm:gap-1.5 transition-all font-semibold px-2 sm:px-3"
                   >
                     <Terminal className="h-3.5 w-3.5" />
-                    {showPlayground ? 'Hide Playground' : 'Practice Code'}
+                    <span className="hidden sm:inline">{showPlayground ? 'Hide Playground' : 'Practice Code'}</span>
                   </Button>
 
-                  <div className="h-4 w-[1px] bg-border-subtle" />
-                  <span className="text-xs font-bold text-text-primary max-w-[200px] sm:max-w-xs truncate" title={activeCourse.name}>
+                  <div className="h-4 w-[1px] bg-border-subtle hidden sm:block" />
+                  <span className="text-[10px] sm:text-xs font-bold text-text-primary max-w-[120px] sm:max-w-[200px] md:max-w-xs truncate hidden sm:inline" title={activeCourse.name}>
                     {activeCourse.name}
                   </span>
                 </div>
                 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5 sm:gap-2">
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setShareItemData({ type: 'course', data: activeCourse })}
-                    className="h-7 text-[11px] flex items-center gap-1.5 bg-elevated border border-border hover:bg-hover font-semibold text-text-secondary hover:text-text-primary"
+                    className="h-7 text-[10px] sm:text-[11px] flex items-center gap-1 sm:gap-1.5 bg-elevated border border-border hover:bg-hover font-semibold text-text-secondary hover:text-text-primary px-1.5 sm:px-2.5"
                   >
                     <Share2 className="h-3.5 w-3.5" />
-                    Share
+                    <span className="hidden sm:inline">Share</span>
                   </Button>
                   
                   <span className={cn(
-                    "text-[10px] px-2 py-0.5 rounded font-bold uppercase tracking-wider",
+                    "text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded font-bold uppercase tracking-wider whitespace-nowrap",
                     activeCourse.isPlaylist ? "bg-accent/10 text-accent-light border border-accent/20" : "bg-semantic-purple-bg/30 text-semantic-purple border border-semantic-purple-bg"
                   )}>
                     {activeCourse.isPlaylist ? 'Playlist' : 'Lecture Video'}
@@ -706,14 +707,14 @@ export default function Courses() {
 
               {/* Side-by-Side split pane grid */}
               <div className={cn(
-                "grid gap-6 items-stretch",
+                "grid gap-4 sm:gap-6 items-stretch",
                 showPlayground ? "grid-cols-1 lg:grid-cols-2" : "grid-cols-1 xl:grid-cols-3"
               )}>
                 
                 {/* Video + Tracker block */}
-                <div className={cn("space-y-4 flex flex-col", showPlayground ? "" : "xl:col-span-2")}>
+                <div className={cn("space-y-3 sm:space-y-4 flex flex-col", showPlayground ? "" : "xl:col-span-2")}>
                   {/* Aspect-video Frame */}
-                  <div className="w-full aspect-video rounded-2xl border border-border-subtle bg-black overflow-hidden shadow-2xl relative">
+                  <div className="w-full aspect-video rounded-xl sm:rounded-2xl border border-border-subtle bg-black overflow-hidden shadow-lg sm:shadow-2xl relative">
                     <iframe
                       id="yt-iframe-player"
                       src={getEmbedUrl(activeCourse)}
@@ -724,47 +725,47 @@ export default function Courses() {
                     />
                   </div>
                   {/* Progress Bar (Auto-updates from YouTube Player, read-only) */}
-                  <div className="w-full bg-surface border border-border-subtle h-5 rounded-full overflow-hidden relative flex items-center shadow-inner select-none mt-1">
+                  <div className="w-full bg-surface border border-border-subtle h-4 sm:h-5 rounded-full overflow-hidden relative flex items-center shadow-inner select-none mt-1">
                     <div
                       className="bg-accent h-full rounded-full transition-all duration-300 absolute left-0 top-0 bottom-0"
                       style={{ width: `${progressPercent}%` }}
                     />
-                    <span className="w-full text-center relative z-10 text-[10px] font-extrabold tracking-wider text-text-primary drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
+                    <span className="w-full text-center relative z-10 text-[9px] sm:text-[10px] font-extrabold tracking-wider text-text-primary drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
                       {progressPercent}%
                     </span>
                   </div>
 
                   {/* Playlist Lecture History Logs */}
                   {activeCourse.isPlaylist && getHistoryList(activeCourse).length > 0 && (
-                    <div className="bg-surface rounded-2xl border border-border-subtle/70 p-4 space-y-3.5 shadow-md">
+                    <div className="bg-surface rounded-xl sm:rounded-2xl border border-border-subtle/70 p-3 sm:p-4 space-y-3 sm:space-y-3.5 shadow-md">
                       <div className="flex items-center gap-2">
                         <Activity className="h-4 w-4 text-accent-light" />
                         <span className="text-[10px] font-bold text-text-primary uppercase tracking-wider">Lecture History Log</span>
                       </div>
-                      <div className="space-y-2.5 max-h-[180px] overflow-y-auto pr-1">
+                      <div className="space-y-2 sm:space-y-2.5 max-h-[150px] sm:max-h-[180px] overflow-y-auto pr-1">
                         {getHistoryList(activeCourse).map((vid) => (
                           <div
                             key={vid.id}
                             className={cn(
-                              "flex items-center justify-between p-2.5 rounded-xl border border-border-subtle/50 text-xs transition-colors hover:bg-hover/20",
+                              "flex items-center justify-between p-2 sm:p-2.5 rounded-xl border border-border-subtle/50 text-xs transition-colors hover:bg-hover/20 gap-2",
                               activeVideoId === vid.id ? "bg-accent/5 border-accent/25" : "bg-card"
                             )}
                           >
-                            <div className="flex items-center gap-3.5 min-w-0 pr-2">
+                            <div className="flex items-center gap-2.5 sm:gap-3.5 min-w-0">
                               <Button
                                 size="icon"
                                 variant="ghost"
                                 onClick={() => setOverrideVideoId(vid.id)}
-                                className="h-7 w-7 rounded-full bg-accent/15 text-accent-light hover:bg-accent hover:text-white shrink-0"
+                                className="h-6 w-6 sm:h-7 sm:w-7 rounded-full bg-accent/15 text-accent-light hover:bg-accent hover:text-white shrink-0"
                               >
                                 <Play className="h-3 w-3 fill-current ml-0.5" />
                               </Button>
-                              <span className="font-semibold text-text-primary truncate" title={vid.title}>
+                              <span className="font-semibold text-text-primary truncate text-[11px] sm:text-xs" title={vid.title}>
                                 {vid.title}
                               </span>
                             </div>
-                            <div className="flex items-center gap-3 shrink-0">
-                              <span className="text-[10px] text-text-muted font-bold whitespace-nowrap">
+                            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                              <span className="text-[9px] sm:text-[10px] text-text-muted font-bold whitespace-nowrap">
                                 {vid.percent}% • {formatTime(vid.duration - vid.currentTime)} left
                               </span>
                             </div>
@@ -834,7 +835,7 @@ export default function Courses() {
                       </CardHeader>
 
                       {/* Sub-header File operations bar */}
-                      <div className="flex items-center justify-between p-2.5 border-b border-border-subtle bg-surface/50 text-xs shrink-0 flex-wrap gap-2">
+                      <div className="flex items-center justify-between p-2 sm:p-2.5 border-b border-border-subtle bg-surface/50 text-xs shrink-0 flex-wrap gap-1.5 sm:gap-2">
                         {/* Selector for files */}
                         <div className="flex items-center gap-2">
                           <Select value={pgFileId || 'new'} onValueChange={handlePgSelectFile}>
@@ -855,7 +856,7 @@ export default function Courses() {
                         </div>
 
                         {/* File Name input and operations buttons */}
-                        <div className="flex items-center gap-1.5 flex-1 max-w-[150px]">
+                        <div className="flex items-center gap-1.5 flex-1 max-w-[120px] sm:max-w-[150px]">
                           <FileCode className="h-3.5 w-3.5 text-text-muted shrink-0" />
                           <div className="relative flex items-center flex-1 group">
                             <Input
@@ -882,11 +883,11 @@ export default function Courses() {
                           )}
                         </div>
                       </div>
-                      <CardContent className="p-3 flex-1 flex flex-col min-h-[350px] space-y-3">
+                      <CardContent className="p-2 sm:p-3 flex-1 flex flex-col min-h-[280px] sm:min-h-[350px] space-y-2 sm:space-y-3">
                         <textarea
                           value={pgCode}
                           onChange={(e) => setPgCode(e.target.value)}
-                          className="w-full flex-1 bg-base text-text-primary text-xs font-mono p-3 outline-none resize-none rounded-xl border border-border-subtle focus:border-accent/40 leading-relaxed transition-all shadow-inner min-h-[180px]"
+                          className="w-full flex-1 bg-base text-text-primary text-[11px] sm:text-xs font-mono p-2.5 sm:p-3 outline-none resize-none rounded-xl border border-border-subtle focus:border-accent/40 leading-relaxed transition-all shadow-inner min-h-[140px] sm:min-h-[180px]"
                           style={{ tabSize: 4 }}
                           onKeyDown={(e) => {
                             if (e.key === 'Tab') {
@@ -903,7 +904,7 @@ export default function Courses() {
                         />
 
                         {/* Console Output */}
-                        <div className="border border-border-subtle bg-base rounded-xl overflow-hidden flex flex-col h-[130px]">
+                        <div className="border border-border-subtle bg-base rounded-xl overflow-hidden flex flex-col h-[100px] sm:h-[130px]">
                           <div className="flex items-center justify-between p-2 bg-surface border-b border-border-subtle/50 text-[10px] font-bold text-text-secondary shrink-0">
                             <span>CONSOLE OUTPUT</span>
                             <button onClick={() => setPgOutput('')} className="text-text-muted hover:text-text-primary">Clear</button>
