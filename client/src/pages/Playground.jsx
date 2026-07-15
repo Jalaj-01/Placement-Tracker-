@@ -315,9 +315,9 @@ export default function Playground() {
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          {/* Language Toggle + Wasm Badge inline */}
-          <div className="flex items-center gap-2 shrink-0">
-            <div className="flex bg-surface p-1 rounded-lg border border-border-subtle">
+          {/* Language Toggle + Wasm Badge + File Selector — all inline */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex bg-surface p-1 rounded-lg border border-border-subtle shrink-0">
               <button
                 onClick={() => handleLanguageChange('python')}
                 className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all ${
@@ -350,10 +350,10 @@ export default function Playground() {
               </button>
             </div>
 
-            {/* Engine status badge — inline with language toggle */}
+            {/* Engine status badge */}
             <Badge
               variant={language === 'python' && loadingRunner ? 'secondary' : 'success'}
-              className="h-7 flex gap-1.5 text-micro items-center whitespace-nowrap"
+              className="h-7 flex gap-1.5 text-micro items-center whitespace-nowrap shrink-0"
             >
               {language === 'python' ? (
                 loadingRunner ? (
@@ -371,24 +371,24 @@ export default function Playground() {
                 </>
               )}
             </Badge>
-          </div>
 
-          {/* File selector */}
-          <Select value={currentFileId || 'new'} onValueChange={handleSelectFile}>
-            <SelectTrigger className="w-[180px] bg-surface border border-border-subtle text-xs">
-              <SelectValue placeholder="Files..." />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="new" className="text-accent-light font-medium flex items-center gap-1.5">
-                <Plus className="h-3 w-3 inline mr-1" /> New Script
-              </SelectItem>
-              {filteredFiles.map((f) => (
-                <SelectItem key={f.id} value={f.id}>
-                  {f.name}
+            {/* File selector — inline on same row */}
+            <Select value={currentFileId || 'new'} onValueChange={handleSelectFile}>
+              <SelectTrigger className="w-[160px] bg-surface border border-border-subtle text-xs shrink-0">
+                <SelectValue placeholder="Files..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new" className="text-accent-light font-medium flex items-center gap-1.5">
+                  <Plus className="h-3 w-3 inline mr-1" /> New Script
                 </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+                {filteredFiles.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>
+                    {f.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
         </div>
 
       </div>

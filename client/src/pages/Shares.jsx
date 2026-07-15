@@ -442,19 +442,9 @@ export default function Shares() {
       <Dialog open={!!viewingShare} onOpenChange={() => setViewingShare(null)}>
         <DialogContent className="sm:max-w-[500px] bg-card border border-border-subtle max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-body font-bold text-text-primary">
-                View {viewingShare ? getItemTypeName(viewingShare.itemType) : 'Item'}
-              </DialogTitle>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-text-muted hover:text-text-primary"
-                onClick={() => setViewingShare(null)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
+            <DialogTitle className="text-body font-bold text-text-primary">
+              View {viewingShare ? getItemTypeName(viewingShare.itemType) : 'Item'}
+            </DialogTitle>
           </DialogHeader>
           {viewingShare && (
             <div className="space-y-4 pt-2">
