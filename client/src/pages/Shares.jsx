@@ -138,180 +138,224 @@ export default function Shares() {
 
   const renderViewContent = (share) => {
     const data = share.itemData
+
     switch (share.itemType) {
-      case 'course':
+
+      case 'library': {
+        const isPdf = data.type?.includes('pdf') || data.name?.endsWith('.pdf')
+        const isImage = data.type?.startsWith('image/') ||
+          /\.(png|jpg|jpeg|gif|webp|svg)$/i.test(data.name || '')
+
+        if (isPdf && data.url) {
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-text-primary truncate">{data.name}</p>
+                <a href={data.url} target="_blank" rel="noopener noreferrer"
+                  className="text-[10px] text-accent-light hover:underline shrink-0 ml-2">Open in tab ↗</a>
+              </div>
+              <iframe
+                src={data.url}
+                title={data.name}
+                className="w-full rounded-lg border border-border-subtle bg-surface"
+                style={{ height: '60vh' }}
+              />
+            </div>
+          )
+        }
+
+        if (isImage && data.url) {
+          return (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-semibold text-text-primary truncate">{data.name}</p>
+                <a href={data.url} target="_blank" rel="noopener noreferrer"
+                  className="text-[10px] text-accent-light hover:underline shrink-0 ml-2">Open in tab ↗</a>
+              </div>
+              <img
+                src={data.url}
+                alt={data.name}
+                className="w-full max-h-[60vh] object-contain rounded-lg border border-border-subtle bg-surface"
+              />
+            </div>
+          )
+        }
+
+        // Generic file — show open link prominently
         return (
-          <div className="space-y-3">
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">Course Name</p>
-              <p className="text-sm text-text-primary">{data.name}</p>
+          <div className="flex flex-col items-center gap-4 py-8">
+            <FileText className="h-16 w-16 text-text-muted/50" />
+            <div className="text-center space-y-1">
+              <p className="text-sm font-semibold text-text-primary">{data.name}</p>
+              <p className="text-xs text-text-muted">{data.type || 'Unknown type'}</p>
             </div>
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">URL</p>
-              <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-light hover:underline break-all">
-                {data.url}
-              </a>
+            <a
+              href={data.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-xs font-semibold text-white bg-accent hover:bg-accent-light px-4 py-2 rounded-lg transition-colors"
+            >
+              Open File ↗
+            </a>
+          </div>
+        )
+      }
+
+      case 'course': {
+        const embedUrl = data.isPlaylist
+          ? `https://www.youtube.com/embed/videoseries?list=${data.embedId}`
+          : `https://www.youtube.com/embed/${data.embedId}`
+        return (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-semibold text-text-primary truncate">{data.name}</p>
+              <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-accent/10 text-accent-light border border-accent/20 shrink-0 ml-2">
+                {data.isPlaylist ? 'Playlist' : 'Video'}
+              </span>
             </div>
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">Type</p>
-              <p className="text-sm text-text-primary">{data.isPlaylist ? 'Playlist' : 'Single Video'}</p>
+            <div className="w-full aspect-video rounded-xl overflow-hidden border border-border-subtle bg-black">
+              <iframe
+                src={embedUrl}
+                title={data.name}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           </div>
         )
-      case 'bookmark':
+      }
+
+      case 'bookmark': {
         return (
           <div className="space-y-3">
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">Title</p>
-              <p className="text-sm text-text-primary">{data.title}</p>
-            </div>
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">URL</p>
-              <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-light hover:underline break-all">
-                {data.url}
-              </a>
-            </div>
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">Category</p>
-              <p className="text-sm text-text-primary">{data.category || 'General'}</p>
-            </div>
-            {data.description && (
-              <div>
-                <p className="text-micro text-text-muted font-semibold uppercase">Description</p>
-                <p className="text-sm text-text-primary">{data.description}</p>
+            <a
+              href={data.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 p-4 rounded-xl border border-border-subtle bg-surface hover:border-accent/40 transition-all"
+            >
+              <img
+                src={`https://www.google.com/s2/favicons?domain=${new URL(data.url).hostname}&sz=32`}
+                alt=""
+                className="h-8 w-8 rounded shrink-0 mt-0.5"
+                onError={(e) => { e.target.style.display = 'none' }}
+              />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-text-primary group-hover:text-accent-light transition-colors truncate">{data.title}</p>
+                <p className="text-[11px] text-accent-light truncate mt-0.5">{data.url}</p>
+                {data.description && <p className="text-xs text-text-secondary mt-1 line-clamp-2">{data.description}</p>}
               </div>
-            )}
-            {data.tags && data.tags.length > 0 && (
-              <div>
-                <p className="text-micro text-text-muted font-semibold uppercase">Tags</p>
-                <div className="flex flex-wrap gap-1.5 mt-1">
-                  {data.tags.map((tag, idx) => (
-                    <span key={idx} className="text-xs px-2 py-0.5 rounded bg-surface border border-border-subtle text-text-secondary">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+              <span className="text-accent-light shrink-0 text-lg group-hover:translate-x-0.5 transition-transform">↗</span>
+            </a>
+            <div className="flex items-center gap-2 flex-wrap">
+              {data.category && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-border-subtle text-text-secondary font-medium">
+                  {data.category}
+                </span>
+              )}
+              {data.tags?.map((tag, i) => (
+                <span key={i} className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent-light font-medium">
+                  #{tag}
+                </span>
+              ))}
+            </div>
           </div>
         )
-      case 'library':
+      }
+
+      case 'problem': {
+        const diffColor = {
+          Easy: 'text-semantic-green border-semantic-green/30 bg-semantic-green/10',
+          Medium: 'text-semantic-yellow border-semantic-yellow/30 bg-semantic-yellow/10',
+          Hard: 'text-semantic-red border-semantic-red/30 bg-semantic-red/10',
+        }[data.difficulty] || 'text-text-secondary border-border-subtle bg-surface'
+
         return (
           <div className="space-y-3">
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">Document Name</p>
-              <p className="text-sm text-text-primary">{data.name}</p>
-            </div>
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">URL</p>
-              <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-light hover:underline break-all">
-                {data.url}
-              </a>
-            </div>
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">Type</p>
-              <p className="text-sm text-text-primary">{data.type || 'unknown'}</p>
-            </div>
-            {data.size && (
-              <div>
-                <p className="text-micro text-text-muted font-semibold uppercase">Size</p>
-                <p className="text-sm text-text-primary">{data.size}</p>
+            <a
+              href={data.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex items-start gap-3 p-4 rounded-xl border border-border-subtle bg-surface hover:border-accent/40 transition-all"
+            >
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-text-primary group-hover:text-accent-light transition-colors">{data.title}</p>
+                <p className="text-[11px] text-accent-light truncate mt-0.5">{data.url}</p>
               </div>
-            )}
-          </div>
-        )
-      case 'problem':
-        return (
-          <div className="space-y-3">
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">Problem Title</p>
-              <p className="text-sm text-text-primary">{data.title}</p>
+              <span className="text-accent-light shrink-0 text-lg">↗</span>
+            </a>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className={`text-[10px] px-2 py-0.5 rounded-full border font-bold uppercase ${diffColor}`}>
+                {data.difficulty || 'Medium'}
+              </span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface border border-border-subtle text-text-secondary font-medium">
+                {data.platform || 'LeetCode'}
+              </span>
+              {data.tag && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/10 border border-accent/20 text-accent-light font-medium">
+                  {data.tag}
+                </span>
+              )}
             </div>
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">URL</p>
-              <a href={data.url} target="_blank" rel="noopener noreferrer" className="text-sm text-accent-light hover:underline break-all">
-                {data.url}
-              </a>
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-micro text-text-muted font-semibold uppercase">Platform</p>
-                <p className="text-sm text-text-primary">{data.platform || 'LeetCode'}</p>
-              </div>
-              <div>
-                <p className="text-micro text-text-muted font-semibold uppercase">Difficulty</p>
-                <p className="text-sm text-text-primary">{data.difficulty || 'Medium'}</p>
-              </div>
-            </div>
-            {data.tag && (
-              <div>
-                <p className="text-micro text-text-muted font-semibold uppercase">Tag</p>
-                <p className="text-sm text-text-primary">{data.tag}</p>
-              </div>
-            )}
             {data.notes && (
-              <div>
-                <p className="text-micro text-text-muted font-semibold uppercase">Notes</p>
-                <p className="text-sm text-text-primary whitespace-pre-wrap">{data.notes}</p>
+              <div className="bg-surface rounded-lg border border-border-subtle p-3">
+                <p className="text-[10px] font-bold text-text-muted uppercase tracking-wider mb-1.5">Notes</p>
+                <p className="text-xs text-text-primary whitespace-pre-wrap leading-relaxed">{data.notes}</p>
               </div>
             )}
           </div>
         )
-      case 'playground':
+      }
+
+      case 'playground': {
         return (
-          <div className="space-y-3">
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">File Name</p>
-              <p className="text-sm text-text-primary">{data.name}</p>
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-semibold text-text-primary">{data.name}</span>
+              {data.language && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider bg-accent/10 text-accent-light border border-accent/20">
+                  {data.language}
+                </span>
+              )}
             </div>
-            {data.language && (
-              <div>
-                <p className="text-micro text-text-muted font-semibold uppercase">Language</p>
-                <p className="text-sm text-text-primary capitalize">{data.language}</p>
+            <div className="rounded-xl border border-border-subtle overflow-hidden">
+              <div className="flex items-center justify-between px-3 py-2 bg-surface border-b border-border-subtle/60">
+                <span className="text-[10px] font-bold text-text-muted uppercase tracking-widest">Source Code</span>
               </div>
-            )}
-            <div>
-              <p className="text-micro text-text-muted font-semibold uppercase">Code</p>
-              <pre className="text-xs text-text-primary bg-surface p-3 rounded-lg border border-border-subtle overflow-x-auto whitespace-pre-wrap">
+              <pre className="text-xs text-semantic-green font-mono p-4 bg-base overflow-x-auto whitespace-pre-wrap leading-relaxed max-h-[50vh] overflow-y-auto">
                 {data.code}
               </pre>
             </div>
           </div>
         )
-      case 'preparation':
+      }
+
+      case 'preparation': {
         return (
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-surface p-3 rounded-lg border border-border-subtle">
-                <p className="text-micro text-text-muted font-semibold uppercase">Topics</p>
-                <p className="text-lg font-bold text-accent-light">{data.topics?.length || 0}</p>
-              </div>
-              <div className="bg-surface p-3 rounded-lg border border-border-subtle">
-                <p className="text-micro text-text-muted font-semibold uppercase">Courses</p>
-                <p className="text-lg font-bold text-semantic-red">{data.courses?.length || 0}</p>
-              </div>
-              <div className="bg-surface p-3 rounded-lg border border-border-subtle">
-                <p className="text-micro text-text-muted font-semibold uppercase">Problems</p>
-                <p className="text-lg font-bold text-semantic-green">{data.problems?.length || 0}</p>
-              </div>
-              <div className="bg-surface p-3 rounded-lg border border-border-subtle">
-                <p className="text-micro text-text-muted font-semibold uppercase">Bookmarks</p>
-                <p className="text-lg font-bold text-semantic-blue">{data.bookmarks?.length || 0}</p>
-              </div>
-              <div className="bg-surface p-3 rounded-lg border border-border-subtle">
-                <p className="text-micro text-text-muted font-semibold uppercase">Library Docs</p>
-                <p className="text-lg font-bold text-accent-light">{data.library?.length || 0}</p>
-              </div>
-              <div className="bg-surface p-3 rounded-lg border border-border-subtle">
-                <p className="text-micro text-text-muted font-semibold uppercase">Playground Files</p>
-                <p className="text-lg font-bold text-semantic-purple">{data.playground?.length || 0}</p>
-              </div>
+            <div className="grid grid-cols-3 gap-2">
+              {[
+                { label: 'Topics', value: data.topics?.length || 0, color: 'text-accent-light' },
+                { label: 'Courses', value: data.courses?.length || 0, color: 'text-semantic-red' },
+                { label: 'Problems', value: data.problems?.length || 0, color: 'text-semantic-green' },
+                { label: 'Bookmarks', value: data.bookmarks?.length || 0, color: 'text-semantic-blue' },
+                { label: 'Library', value: data.library?.length || 0, color: 'text-accent-light' },
+                { label: 'Scripts', value: data.playground?.length || 0, color: 'text-semantic-purple' },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="bg-surface p-3 rounded-lg border border-border-subtle text-center">
+                  <p className="text-micro text-text-muted font-semibold uppercase">{label}</p>
+                  <p className={`text-xl font-bold mt-0.5 ${color}`}>{value}</p>
+                </div>
+              ))}
             </div>
-            <p className="text-xs text-text-secondary mt-2">
-              This is a complete preparation package. Importing will add all items to your account.
+            <p className="text-xs text-text-secondary bg-surface/50 p-3 rounded-lg border border-border-subtle/50">
+              📦 This is a complete preparation package. Importing will merge all items into your account.
             </p>
           </div>
         )
+      }
+
       default:
         return <p className="text-sm text-text-secondary">Unknown item type</p>
     }
@@ -440,25 +484,19 @@ export default function Shares() {
 
       {/* View Share Dialog */}
       <Dialog open={!!viewingShare} onOpenChange={() => setViewingShare(null)}>
-        <DialogContent className="sm:max-w-[500px] bg-card border border-border-subtle max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-[700px] w-[95vw] bg-card border border-border-subtle max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-body font-bold text-text-primary">
-              View {viewingShare ? getItemTypeName(viewingShare.itemType) : 'Item'}
+              {viewingShare ? getItemTypeName(viewingShare.itemType) : 'Item'}
             </DialogTitle>
+            {viewingShare && (
+              <p className="text-[10px] text-text-muted">
+                Shared by <span className="font-semibold text-text-secondary">{viewingShare.senderEmail}</span>
+              </p>
+            )}
           </DialogHeader>
           {viewingShare && (
-            <div className="space-y-4 pt-2">
-              <div className="flex items-center gap-2 pb-3 border-b border-border-subtle">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface border border-border-subtle shrink-0">
-                  {getShareIcon(viewingShare.itemType)}
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-text-primary">{getShareTitle(viewingShare)}</p>
-                  <p className="text-[10px] text-text-muted">
-                    Shared by <span className="font-semibold text-text-secondary">{viewingShare.senderEmail}</span>
-                  </p>
-                </div>
-              </div>
+            <div className="space-y-4 pt-1">
               {renderViewContent(viewingShare)}
               <div className="flex justify-end gap-2 pt-3 border-t border-border-subtle">
                 <Button
