@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { subscribeTopics, updateTopic, addTopic, deleteTopic, deleteCategory, subscribeProfile, updateProfile } from '@/services/firestoreService'
+import { subscribeTopics, updateTopic, addTopic, deleteTopic, deleteCategory, renameCategory, renameCustomSubject, subscribeProfile, updateProfile } from '@/services/firestoreService'
 
 export function useTopics(uid) {
   const [topics, setTopics] = useState([])
@@ -32,6 +32,8 @@ export function useTopics(uid) {
     addTopic: (data) => addTopic(uid, data),
     deleteTopic: (id) => deleteTopic(uid, id),
     deleteCategory: (categoryName) => deleteCategory(uid, categoryName),
+    renameCategory: (oldName, newName) => renameCategory(uid, oldName, newName),
+    renameCustomSubject: (oldName, newName) => renameCustomSubject(uid, oldName, newName),
     updateCategoryOrder: (subject, newOrder) => {
       const currentOrders = profile?.categoryOrders || {}
       return updateProfile(uid, {
@@ -43,3 +45,4 @@ export function useTopics(uid) {
     }
   }
 }
+

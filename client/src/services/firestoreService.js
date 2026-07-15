@@ -102,6 +102,55 @@ export async function deleteCategory(uid, categoryName) {
   await recordActivity(uid)
 }
 
+export async function renameCategory(uid, oldName, newName) {
+  // 1. Batch rename all topics with this category
+  const q = query(userPath(uid, 'topics'), where('category', '==', oldName))
+  const snap = await getDocs(q)
+  const batch = writeBatch(db)
+  snap.docs.forEach((d) => {
+    batch.update(d.ref, { category: newName, updatedAt: serverTimestamp() })
+  })
+  await batch.commit()
+
+  // 2. Update categoryOrders in profile — rename the key in all subjects' order arrays
+  const profileRef = doc(db, 'users', uid, 'profile', 'main')
+  const profileSnap = await getDoc(profileRef)
+  const profileData = profileSnap.data() || {}
+  const currentOrders = profileData.categoryOrders || {}
+  const updatedOrders = {}
+  for (const [subject, order] of Object.entries(currentOrders)) {
+    updatedOrders[subject] = order.map((name) => (name === oldName ? newName : name))
+  }
+  await updateDoc(profileRef, { categoryOrders: updatedOrders })
+  await recordActivity(uid)
+}
+
+export async function renameCustomSubject(uid, oldName, newName) {
+  // 1. Batch rename all topics with this subject
+  const q = query(userPath(uid, 'topics'), where('subject', '==', oldName))
+  const snap = await getDocs(q)
+  const batch = writeBatch(db)
+  snap.docs.forEach((d) => {
+    batch.update(d.ref, { subject: newName, updatedAt: serverTimestamp() })
+  })
+  await batch.commit()
+
+  // 2. Rename in customSubjects list and categoryOrders key
+  const profileRef = doc(db, 'users', uid, 'profile', 'main')
+  const profileSnap = await getDoc(profileRef)
+  const profileData = profileSnap.data() || {}
+  const customSubjects = (profileData.customSubjects || []).map((s) => (s === oldName ? newName : s))
+  const currentOrders = profileData.categoryOrders || {}
+  const updatedOrders = { ...currentOrders }
+  if (updatedOrders[oldName]) {
+    updatedOrders[newName] = updatedOrders[oldName]
+    delete updatedOrders[oldName]
+  }
+  await updateDoc(profileRef, { customSubjects, categoryOrders: updatedOrders })
+  await recordActivity(uid)
+}
+
+
 export async function updateCategoryOrder(uid, subject, order) {
   if (subject === 'customSubjects') {
     await updateDoc(doc(db, 'users', uid, 'profile', 'main'), {
@@ -117,6 +166,7 @@ export async function updateCategoryOrder(uid, subject, order) {
     })
   }
 }
+
 
 
 

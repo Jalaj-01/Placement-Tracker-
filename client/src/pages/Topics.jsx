@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect } from 'react'
-import { BookOpen, Plus } from 'lucide-react'
+import { useState, useMemo, useEffect, useRef } from 'react'
+import { BookOpen, Plus, Pencil, Check, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useAuth } from '@/hooks/useAuth'
@@ -15,7 +15,7 @@ import { cn } from '@/lib/utils'
 
 export default function Topics() {
   const { user } = useAuth()
-  const { topics, loading, updateTopic, addTopic, deleteTopic, deleteCategory, profile, updateCategoryOrder } = useTopics(user?.uid)
+  const { topics, loading, updateTopic, addTopic, deleteTopic, deleteCategory, renameCategory, renameCustomSubject, profile, updateCategoryOrder } = useTopics(user?.uid)
 
   const [localOrders, setLocalOrders] = useState({})
   const [draggedCategory, setDraggedCategory] = useState(null)
@@ -173,6 +173,29 @@ export default function Topics() {
   const [showAddSubject, setShowAddSubject] = useState(false)
   const [newSubjectName, setNewSubjectName] = useState('')
   const [customSubjects, setCustomSubjects] = useState([])
+
+  // Inline subject rename state
+  const [editingSubject, setEditingSubject] = useState(null) // the subject name being edited
+  const [editSubjectValue, setEditSubjectValue] = useState('')
+  const subjectEditRef = useRef(null)
+
+  useEffect(() => {
+    if (editingSubject && subjectEditRef.current) {
+      subjectEditRef.current.focus()
+      subjectEditRef.current.select()
+    }
+  }, [editingSubject])
+
+  const handleSubjectRenameConfirm = async () => {
+    const trimmed = editSubjectValue.trim()
+    if (!trimmed || trimmed === editingSubject) {
+      setEditingSubject(null)
+      return
+    }
+    await renameCustomSubject(editingSubject, trimmed)
+    setCustomSubjects((prev) => prev.map((s) => (s === editingSubject ? trimmed : s)))
+    setEditingSubject(null)
+  }
 
   const [activeTab, setActiveTab] = useState('dsa')
 
@@ -592,6 +615,7 @@ export default function Topics() {
                     onAdd={(name) => handleAddCustom('DSA', category, name)}
                     onDelete={deleteTopic}
                     onDeleteCategory={setDeleteConfirmSection}
+                    onRenameCategory={renameCategory}
                     onDragHandleMouseDown={() => setCanDrag(category)}
                     onDragHandleMouseUp={() => setCanDrag(null)}
                     onDragHandleTouchStart={() => handleTouchStart(category, 'DSA')}
@@ -637,6 +661,7 @@ export default function Topics() {
                             onAdd={(name) => handleAddCustom(subject, category, name)}
                             onDelete={deleteTopic}
                             onDeleteCategory={setDeleteConfirmSection}
+                            onRenameCategory={renameCategory}
                             onDragHandleMouseDown={() => setCanDrag(category)}
                             onDragHandleMouseUp={() => setCanDrag(null)}
                             onDragHandleTouchStart={() => handleTouchStart(category, subject)}
@@ -688,6 +713,7 @@ export default function Topics() {
                             onAdd={(name) => handleAddCustom(subject, category, name)}
                             onDelete={deleteTopic}
                             onDeleteCategory={setDeleteConfirmSection}
+                            onRenameCategory={renameCategory}
                             onDragHandleMouseDown={() => setCanDrag(category)}
                             onDragHandleMouseUp={() => setCanDrag(null)}
                             onDragHandleTouchStart={() => handleTouchStart(category, subject)}
@@ -709,7 +735,34 @@ export default function Topics() {
 
               return (
                 <div key={subject} className="space-y-4 border-l-2 border-semantic-orange-bg pl-4 py-1">
-                  <h2 className="text-section font-semibold text-text-primary mb-2">{subject}</h2>
+                  {/* Editable custom subject header */}
+                  {editingSubject === subject ? (
+                    <div className="flex items-center gap-2 mb-2">
+                      <input
+                        ref={subjectEditRef}
+                        value={editSubjectValue}
+                        onChange={(e) => setEditSubjectValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSubjectRenameConfirm()
+                          if (e.key === 'Escape') setEditingSubject(null)
+                        }}
+                        className="text-section font-semibold bg-surface border border-accent/50 rounded-md px-2 py-0.5 text-text-primary focus:outline-none focus:ring-1 focus:ring-accent"
+                      />
+                      <button onClick={handleSubjectRenameConfirm} className="p-1 rounded text-semantic-green hover:bg-semantic-green/10" title="Save"><Check className="h-4 w-4" /></button>
+                      <button onClick={() => setEditingSubject(null)} className="p-1 rounded text-text-muted hover:bg-hover" title="Cancel"><X className="h-4 w-4" /></button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2 mb-2 group/subj">
+                      <h2 className="text-section font-semibold text-text-primary">{subject}</h2>
+                      <button
+                        onClick={() => { setEditingSubject(subject); setEditSubjectValue(subject) }}
+                        className="p-1 rounded text-text-muted opacity-0 group-hover/subj:opacity-100 hover:text-accent-light hover:bg-hover transition-all"
+                        title="Rename subject"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
                   <div className="space-y-3">
                     {Object.entries(categories).map(([category, list]) => {
                       const filteredList = list.filter(filterTopic)
@@ -737,6 +790,7 @@ export default function Topics() {
                             onAdd={(name) => handleAddCustom(subject, category, name)}
                             onDelete={deleteTopic}
                             onDeleteCategory={setDeleteConfirmSection}
+                            onRenameCategory={renameCategory}
                             onDragHandleMouseDown={() => setCanDrag(category)}
                             onDragHandleMouseUp={() => setCanDrag(null)}
                             onDragHandleTouchStart={() => handleTouchStart(category, subject)}
