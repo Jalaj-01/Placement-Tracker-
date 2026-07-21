@@ -5,7 +5,7 @@ import Sidebar from '@/components/layout/Sidebar'
 import BottomNav from '@/components/layout/BottomNav'
 import TopBar from '@/components/layout/TopBar'
 import PageWrapper from '@/components/layout/PageWrapper'
-import AllyCapsuleWidget from '@/components/ai/AllyCapsuleWidget'
+import AICoachDrawer from '@/components/ai/AICoachDrawer'
 import Dashboard from '@/pages/Dashboard'
 import Problems from '@/pages/Problems'
 import Topics from '@/pages/Topics'
@@ -84,7 +84,7 @@ function AppContent() {
     <div className="min-h-screen bg-base text-text-primary">
       <Sidebar user={user} onSignOut={signOut} />
       <BottomNav />
-      <AllyCapsuleWidget />
+      <AICoachDrawer />
       <Routes>
         {/* Redirect root to dashboard when authenticated */}
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
