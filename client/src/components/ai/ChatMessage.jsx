@@ -50,9 +50,9 @@ export default function ChatMessage({ message }) {
     return parts.map((part, index) => {
       if (part.type === 'code') {
         return (
-          <div key={index} className="my-3 rounded-lg border border-border-subtle bg-[#0b0c10] overflow-hidden text-xs">
-            <div className="flex items-center justify-between px-3 py-1.5 bg-[#12141c] border-b border-border-subtle text-text-muted font-mono text-[11px]">
-              <span>{part.language}</span>
+          <div key={index} className="my-3 rounded-xl border border-border-subtle bg-[#0c0d14] overflow-hidden text-xs">
+            <div className="flex items-center justify-between px-3 py-1.5 bg-[#12131d] border-b border-border-subtle text-text-muted font-mono text-[11px]">
+              <span className="text-accent-light">{part.language}</span>
               <button
                 onClick={() => handleCopyCode(part.content, part.id)}
                 className="flex items-center gap-1 hover:text-text-primary transition-colors text-[11px]"
@@ -68,7 +68,7 @@ export default function ChatMessage({ message }) {
                 )}
               </button>
             </div>
-            <pre className="p-3 overflow-x-auto font-mono leading-relaxed text-text-primary text-[12px]">
+            <pre className="p-3.5 overflow-x-auto font-mono leading-relaxed text-text-primary text-[12px]">
               <code>{part.content}</code>
             </pre>
           </div>
@@ -133,33 +133,33 @@ export default function ChatMessage({ message }) {
     <div className={`flex gap-3 my-3 ${isUser ? 'flex-row-reverse' : 'flex-row'}`}>
       {/* Avatar */}
       <div
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg shadow-sm ${
+        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl shadow-sm ${
           isUser
             ? 'bg-accent text-white'
-            : 'bg-gradient-to-tr from-purple-600 to-indigo-500 text-white'
+            : 'bg-accent/15 border border-accent/30 text-accent-light'
         }`}
       >
         {isUser ? <User className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
       </div>
 
       {/* Message Content Container */}
-      <div className={`max-w-[85%] sm:max-w-[78%] space-y-2`}>
+      <div className="max-w-[88%] sm:max-w-[80%] space-y-2">
         <div
           className={`p-3.5 rounded-2xl text-xs sm:text-sm shadow-sm ${
             isUser
-              ? 'bg-accent text-white rounded-tr-none'
-              : 'bg-card border border-border-subtle text-text-primary rounded-tl-none'
+              ? 'bg-accent text-white rounded-tr-xs'
+              : 'bg-surface border border-border-subtle text-text-primary rounded-tl-xs'
           }`}
         >
           {renderFormattedText(message.content)}
 
           {/* Embedded Preparation Analysis Card */}
           {message.type === 'analysis' && message.data && (
-            <div className="mt-4 p-4 rounded-xl bg-surface border border-border-subtle space-y-4 text-text-primary text-xs">
+            <div className="mt-4 p-4 rounded-xl bg-card border border-border-subtle space-y-4 text-text-primary text-xs">
               <div className="flex items-center justify-between gap-2 border-b border-border-subtle pb-3">
                 <div className="flex items-center gap-2">
                   <Award className="h-5 w-5 text-accent-light shrink-0" />
-                  <span className="font-semibold text-sm">Diagnostic Summary</span>
+                  <span className="font-semibold text-sm text-text-primary">Diagnostic Summary</span>
                 </div>
                 <div className="text-right">
                   <span className="text-lg font-bold text-accent-light">{message.data.overallReadiness}%</span>
@@ -172,7 +172,7 @@ export default function ChatMessage({ message }) {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {/* Weak Areas */}
                 {message.data.weakAreas?.length > 0 && (
-                  <div className="space-y-1.5 bg-card/60 p-2.5 rounded-lg border border-border-subtle">
+                  <div className="space-y-1.5 bg-surface p-3 rounded-lg border border-border-subtle">
                     <div className="flex items-center gap-1.5 font-medium text-semantic-red text-[11px]">
                       <AlertCircle className="h-3.5 w-3.5" /> Weak Areas to Focus
                     </div>
@@ -188,7 +188,7 @@ export default function ChatMessage({ message }) {
 
                 {/* Strengths */}
                 {message.data.strengths?.length > 0 && (
-                  <div className="space-y-1.5 bg-card/60 p-2.5 rounded-lg border border-border-subtle">
+                  <div className="space-y-1.5 bg-surface p-3 rounded-lg border border-border-subtle">
                     <div className="flex items-center gap-1.5 font-medium text-semantic-green text-[11px]">
                       <CheckCircle className="h-3.5 w-3.5" /> Core Strengths
                     </div>
@@ -205,7 +205,7 @@ export default function ChatMessage({ message }) {
 
               {/* Priority Actions */}
               {message.data.priorityActions?.length > 0 && (
-                <div className="space-y-1.5 bg-card/60 p-2.5 rounded-lg border border-border-subtle">
+                <div className="space-y-1.5 bg-surface p-3 rounded-lg border border-border-subtle">
                   <div className="flex items-center gap-1.5 font-medium text-accent-light text-[11px]">
                     <Target className="h-3.5 w-3.5" /> Priority Action Items
                   </div>
@@ -224,7 +224,7 @@ export default function ChatMessage({ message }) {
 
           {/* Embedded Interview Brief Card */}
           {message.type === 'brief' && message.data && (
-            <div className="mt-4 p-4 rounded-xl bg-surface border border-border-subtle space-y-3 text-xs text-text-primary">
+            <div className="mt-4 p-4 rounded-xl bg-card border border-border-subtle space-y-3 text-xs text-text-primary">
               {message.data.typicalInterviewProcess && (
                 <div>
                   <h5 className="font-semibold text-accent-light mb-1">Typical Process</h5>
