@@ -78,7 +78,7 @@ export default function AICoach() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-card-title font-bold text-text-primary">AI Coach & Placement Assistant</h1>
+              <h1 className="text-card-title font-bold text-text-primary">Placify AI Coach</h1>
               <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
             </div>
             <p className="text-micro text-text-muted">Powered by Gemini AI • Ask doubts, debug code, or run preparation diagnostics</p>
@@ -118,7 +118,7 @@ export default function AICoach() {
         {loading && (
           <div className="flex items-center gap-3 my-4 p-4 rounded-xl bg-card border border-border-subtle text-purple-400 text-xs font-mono animate-pulse w-fit">
             <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
-            <span>Ally is thinking & generating insights...</span>
+            <span>Placify AI is thinking & generating insights...</span>
           </div>
         )}
 
@@ -199,7 +199,7 @@ export default function AICoach() {
         {/* Input Form */}
         <form onSubmit={handleSend} className="relative flex items-center">
           <textarea
-            placeholder="Message Ally... Ask any doubt, code question, or placement query (Press Enter to send)"
+            placeholder="Message Placify AI... Ask any doubt, code question, or placement query (Press Enter to send)"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {

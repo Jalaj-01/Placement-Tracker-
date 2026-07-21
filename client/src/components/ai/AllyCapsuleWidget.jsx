@@ -70,7 +70,7 @@ export default function AllyCapsuleWidget() {
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-bold text-sm text-text-primary">Ally</span>
+                    <span className="font-bold text-sm text-text-primary">Placify AI</span>
                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold border border-emerald-500/30">
                       Online
                     </span>
@@ -138,7 +138,7 @@ export default function AllyCapsuleWidget() {
 
               {loading && (
                 <div className="flex gap-2 items-center text-xs text-purple-400 p-2 font-mono animate-pulse">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-purple-400" /> Ally is analyzing...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin text-purple-400" /> Placify AI is analyzing...
                 </div>
               )}
               <div ref={messagesEndRef} />
@@ -165,11 +165,11 @@ export default function AllyCapsuleWidget() {
           </div>
         )}
 
-        {/* Capsule Pill Button (Matches User Image 1 Exactly!) */}
+        {/* Capsule Pill Button */}
         <button
           onClick={() => setIsOpen(!isOpen)}
           className="group relative flex items-center gap-2.5 px-4 py-2.5 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-violet-600 text-white font-semibold shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border border-purple-400/30"
-          title="Open Ally AI Assistant"
+          title="Open Placify AI Assistant"
         >
           {/* Inner Circle with Sparkle */}
           <div className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm shadow-inner group-hover:rotate-12 transition-transform">
@@ -177,7 +177,7 @@ export default function AllyCapsuleWidget() {
           </div>
 
           {/* Text */}
-          <span className="text-sm font-bold tracking-wide text-white">Ally</span>
+          <span className="text-sm font-bold tracking-wide text-white">Placify AI</span>
 
           {/* Online Green Indicator Badge (Top Right of Capsule) */}
           <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
