@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 
 export default function PageWrapper({ children }) {
   const location = useLocation()
-  const { sidebarCollapsed } = useAppStore()
+  const { sidebarCollapsed, aiCoachOpen } = useAppStore()
 
   return (
     <motion.main
@@ -14,8 +14,9 @@ export default function PageWrapper({ children }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
       className={cn(
-        'min-h-screen pb-20 lg:pb-0 transition-all',
-        sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60'
+        'min-h-screen pb-20 lg:pb-0 transition-all duration-300',
+        sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60',
+        aiCoachOpen && 'lg:pr-[400px]'
       )}
     >
       <div className="mx-auto max-w-[1200px] p-4 md:p-6">
