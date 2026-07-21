@@ -7,7 +7,7 @@ const INITIAL_MESSAGES = [
   {
     id: 'welcome',
     role: 'assistant',
-    content: "Hi! I'm **Placify Copilot**, your AI Placement & Coding Coach. 🚀\n\nI can help you with:\n- 🎯 **Preparation Diagnostics**: Click **Analyze Prep** to assess your strengths & weak areas.\n- 💡 **Coding Doubts & DSA**: Ask me any question, code snippet, or debugging task.\n- 🏢 **Company Interview Briefs**: Get custom interview guides.\n- 📚 **Topic Refresher**: Quick definitions & cheat sheets.\n\nHow can I help you today?",
+    content: "Hi! I'm **Kai**, your AI Placement & Coding Coach. ⚡\n\nI can assist you with:\n- 🎯 **Preparation Diagnostics**: Click **Analyze Prep** to diagnose your readiness level.\n- 💡 **Coding Doubts & DSA**: Ask me any question, code snippet, or debugging task.\n- 🏢 **Company Interview Guides**: Get custom company interview briefs.\n- 📚 **Topic Cheat Sheets**: Quick concept refreshers and definitions.\n\nWhat would you like to solve today?",
     timestamp: new Date().toISOString(),
   },
 ]
