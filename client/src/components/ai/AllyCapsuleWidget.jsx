@@ -62,10 +62,10 @@ export default function AllyCapsuleWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center">
-      {/* Hanging Glassmorphic Chat Popup Window - Center Aligned */}
+    <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end gap-3">
+      {/* Floating Chat Popup Window - Right Side */}
       {isOpen && (
-        <div className="mb-3 w-[92vw] sm:w-[440px] md:w-[480px] h-[540px] max-h-[80vh] rounded-3xl border border-white/10 bg-[#0d0e16]/95 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="w-[90vw] sm:w-[400px] md:w-[440px] h-[520px] max-h-[80vh] rounded-3xl border border-white/10 bg-[#0d0e16]/95 backdrop-blur-2xl shadow-[0_20px_60px_rgba(0,0,0,0.7)] flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
           {/* Drawer Header */}
           <div className="px-4 py-3.5 bg-card/80 border-b border-border-subtle flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -169,19 +169,19 @@ export default function AllyCapsuleWidget() {
         </div>
       )}
 
-      {/* Center Aligned Hanging Capsule Button (Floating Dock / Dynamic Island Style) */}
+      {/* Right Side Capsule Button */}
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="group relative flex items-center gap-3 px-5 py-2.5 rounded-full bg-[#12131e]/90 backdrop-blur-xl border border-accent/40 shadow-[0_10px_35px_rgba(0,0,0,0.5)] ring-1 ring-accent/20 hover:ring-accent/40 hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer"
+        className="group relative flex items-center gap-3 px-4.5 py-2.5 rounded-full bg-accent text-white font-semibold shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer border border-accent-light/30"
         title="Open Placify Copilot"
       >
         {/* Inner Circle with Sparkle */}
-        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent text-white shadow-sm group-hover:rotate-12 transition-transform">
-          <Sparkles className="h-3.5 w-3.5" />
+        <div className="flex h-5.5 w-5.5 items-center justify-center rounded-full bg-white/20 backdrop-blur-sm shadow-inner group-hover:rotate-12 transition-transform">
+          <Sparkles className="h-3.5 w-3.5 text-white" />
         </div>
 
         {/* Text */}
-        <span className="text-xs sm:text-sm font-semibold tracking-wide text-text-primary">Placify Copilot</span>
+        <span className="text-xs sm:text-sm font-semibold tracking-wide text-white">Placify Copilot</span>
 
         {/* Online Green Pulsing Indicator Badge */}
         <span className="relative flex h-2.5 w-2.5">

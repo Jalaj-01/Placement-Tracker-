@@ -69,8 +69,8 @@ export default function AICoach() {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-5.5rem)] max-w-5xl mx-auto px-2 sm:px-4">
-      {/* Top Header Bar - Borderless & Seamless */}
+    <div className="flex flex-col h-[calc(100vh-5rem)] max-w-5xl mx-auto px-2 sm:px-4 relative">
+      {/* Top Header Bar - Open & Borderless */}
       <div className="py-3 px-2 flex flex-wrap items-center justify-between gap-3 border-b border-border-subtle shrink-0">
         <div className="flex items-center gap-3">
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-accent/15 border border-accent/30 text-accent-light">
@@ -87,7 +87,6 @@ export default function AICoach() {
 
         {/* Top Header Actions */}
         <div className="flex items-center gap-2">
-          {/* Prominent Analyze Prep Button */}
           <Button
             onClick={handleAnalyzePrepClick}
             disabled={loading}
@@ -110,7 +109,7 @@ export default function AICoach() {
       </div>
 
       {/* Main Chat Stream Container */}
-      <div className="flex-1 py-4 overflow-y-auto space-y-4 pr-1 scrollbar-none">
+      <div className="flex-1 py-4 overflow-y-auto space-y-4 pr-1 pb-36 scrollbar-none">
         {messages.map((msg) => (
           <ChatMessage key={msg.id} message={msg} />
         ))}
@@ -127,7 +126,7 @@ export default function AICoach() {
 
       {/* Modal / Popover for Interview Brief Inputs */}
       {showBriefInput && (
-        <div className="mb-3 p-4 bg-surface rounded-2xl border border-border-subtle animate-in fade-in">
+        <div className="absolute bottom-28 left-4 right-4 z-20 p-4 bg-surface/95 backdrop-blur-xl rounded-2xl border border-border-subtle shadow-2xl animate-in fade-in">
           <form onSubmit={handleGenerateBriefSubmit} className="max-w-xl mx-auto space-y-3">
             <div className="flex items-center justify-between">
               <h4 className="text-xs font-semibold text-text-primary flex items-center gap-1.5">
@@ -165,62 +164,58 @@ export default function AICoach() {
         </div>
       )}
 
-      {/* Bottom Action Chips & Modern Chat Input Box */}
-      <div className="pt-2 pb-4 space-y-2.5 shrink-0">
-        {/* Quick Action Chips Bar */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs scrollbar-none">
-          <button
-            onClick={handleAnalyzePrepClick}
-            disabled={loading}
-            className="px-3 py-1.5 rounded-full bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent-light font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
-          >
-            <Gauge className="h-3.5 w-3.5" /> Analyze Prep
-          </button>
-          <button
-            onClick={() => setInput('Explain Dijkstra algorithm with a step-by-step code example in Python')}
-            className="px-3 py-1.5 rounded-full bg-surface border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
-          >
-            <Code className="h-3.5 w-3.5 text-text-muted" /> Explain Algorithm
-          </button>
-          <button
-            onClick={() => setShowBriefInput(true)}
-            className="px-3 py-1.5 rounded-full bg-surface border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
-          >
-            <Building className="h-3.5 w-3.5 text-semantic-green" /> Interview Brief
-          </button>
-          <button
-            onClick={() => setInput('What are the top OS concepts asked in tech interviews?')}
-            className="px-3 py-1.5 rounded-full bg-surface border border-border-subtle hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
-          >
-            <BookOpen className="h-3.5 w-3.5 text-semantic-yellow" /> Core CS Topics
-          </button>
-        </div>
+      {/* Hanging Capsule-Shaped Floating ChatGPT Input Bar */}
+      <div className="absolute bottom-4 left-0 right-0 z-10 px-2 sm:px-4 pointer-events-none">
+        <div className="max-w-3xl mx-auto p-3 bg-surface/95 backdrop-blur-2xl border border-accent/30 shadow-[0_12px_40px_rgba(0,0,0,0.6)] rounded-[28px] space-y-2.5 pointer-events-auto ring-1 ring-white/10">
+          {/* Quick Action Prompt Chips in Pill Capsules */}
+          <div className="flex items-center gap-2 overflow-x-auto px-1 scrollbar-none text-xs">
+            <button
+              onClick={handleAnalyzePrepClick}
+              disabled={loading}
+              className="px-3.5 py-1.5 rounded-full bg-accent/15 border border-accent/30 hover:bg-accent/25 text-accent-light font-semibold whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
+            >
+              <Gauge className="h-3.5 w-3.5" /> Analyze Prep
+            </button>
+            <button
+              onClick={() => setInput('Explain Dijkstra algorithm with a step-by-step code example in Python')}
+              className="px-3.5 py-1.5 rounded-full bg-card/80 border border-border-subtle hover:border-accent hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
+            >
+              <Code className="h-3.5 w-3.5 text-text-muted" /> Explain Algorithm
+            </button>
+            <button
+              onClick={() => setShowBriefInput(true)}
+              className="px-3.5 py-1.5 rounded-full bg-card/80 border border-border-subtle hover:border-accent hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
+            >
+              <Building className="h-3.5 w-3.5 text-semantic-green" /> Interview Brief
+            </button>
+            <button
+              onClick={() => setInput('What are the top OS concepts asked in tech interviews?')}
+              className="px-3.5 py-1.5 rounded-full bg-card/80 border border-border-subtle hover:border-accent hover:bg-hover text-text-secondary whitespace-nowrap flex items-center gap-1.5 transition-all shrink-0"
+            >
+              <BookOpen className="h-3.5 w-3.5 text-semantic-yellow" /> Core CS Topics
+            </button>
+          </div>
 
-        {/* Input Form Container */}
-        <form onSubmit={handleSend} className="relative flex items-center">
-          <textarea
-            placeholder="Message Placify Copilot... Ask any doubt, code question, or placement query (Press Enter to send)"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault()
-                handleSend()
-              }
-            }}
-            rows={1}
-            disabled={loading}
-            className="w-full bg-surface border border-border-subtle hover:border-border focus:border-accent rounded-2xl py-3.5 pl-4 pr-12 text-xs sm:text-sm text-text-primary outline-none transition-all resize-none min-h-[50px] max-h-32 shadow-lg"
-          />
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="absolute right-3 h-8 w-8 rounded-xl bg-accent hover:bg-accent/90 text-white flex items-center justify-center disabled:opacity-40 shadow transition-all"
-            title="Send Message"
-          >
-            <Send className="h-4 w-4" />
-          </button>
-        </form>
+          {/* Capsule Form Input Container */}
+          <form onSubmit={handleSend} className="relative flex items-center bg-card/90 border border-border-subtle hover:border-border focus-within:border-accent focus-within:ring-1 focus-within:ring-accent/30 rounded-full px-4 py-2 shadow-inner transition-all">
+            <input
+              type="text"
+              placeholder="Message Placify Copilot... Ask any doubt, code question, or placement query (Press Enter to send)"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={loading}
+              className="w-full bg-transparent text-xs sm:text-sm text-text-primary outline-none py-1 pr-10 border-none focus:ring-0 placeholder:text-text-muted"
+            />
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="absolute right-2.5 h-8 w-8 rounded-full bg-accent hover:bg-accent/90 text-white flex items-center justify-center disabled:opacity-40 shadow transition-all shrink-0"
+              title="Send Message"
+            >
+              <Send className="h-4 w-4" />
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   )
